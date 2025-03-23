@@ -42,6 +42,7 @@
     </style>
 </head>
 <body>
+    <input type="text" id="nombreUsuario" placeholder="Ingresa tu nombre">
     <button id="btnObtenerUbicacion">Obtener Mi Ubicación</button>
     <p id="status">Presiona el botón para obtener tu ubicación.</p>
     <div id="map"></div>
@@ -92,6 +93,12 @@
 
         // Función para obtener la ubicación
         function obtenerUbicacion() {
+            const nombre = document.getElementById("nombreUsuario").value;
+            if (!nombre) {
+                alert("Por favor, ingresa tu nombre.");
+                return;
+            }
+
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
@@ -100,15 +107,18 @@
                         document.getElementById("status").innerText = `Ubicación obtenida: Latitud ${latitud}, Longitud ${longitud}`;
 
                         // Guardar en Firebase
-                        guardarEnFirebase(latitud, longitud);
+                        guardarEnFirebase(latitud, longitud, nombre);
 
                         // Añadir marcador al mapa
-                        L.marker([latitud, longitud]).addTo(map)
-                            .bindPopup("Tu ubicación actual")
+                        const marker = L.marker([latitud, longitud]).addTo(map)
+                            .bindPopup(`${nombre}: Tu ubicación actual`)
                             .openPopup();
 
                         // Centrar el mapa en la nueva ubicación
                         map.setView([latitud, longitud], 15);
+
+                        // Guardar el marcador en una variable global
+                        window.miMarcador = marker;
                     },
                     (error) => {
                         document.getElementById("status").innerText = "Error al obtener la ubicación: " + error.message;
@@ -120,10 +130,11 @@
         }
 
         // Función para guardar en Firebase
-        function guardarEnFirebase(latitud, longitud) {
+        function guardarEnFirebase(latitud, longitud, nombre) {
             const timestamp = new Date().toISOString();
             const ubicacionRef = database.ref("ubicaciones/" + UserID); // Usar UserID como clave
             ubicacionRef.set({
+                nombre: nombre,
                 latitud: latitud,
                 longitud: longitud,
                 timestamp: timestamp
@@ -136,25 +147,6 @@
             });
         }
 
-        // Función para cargar la última ubicación del usuario
-        function cargarUltimaUbicacion() {
-            database.ref("ubicaciones/" + UserID).once("value", (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    const latitud = data.latitud;
-                    const longitud = data.longitud;
-
-                    // Centrar el mapa en la última ubicación
-                    map.setView([latitud, longitud], 15);
-
-                    // Añadir marcador de la última ubicación
-                    L.marker([latitud, longitud]).addTo(map)
-                        .bindPopup("Última ubicación guardada")
-                        .openPopup();
-                }
-            });
-        }
-
         // Función para cargar ubicaciones guardadas
         function cargarUbicaciones() {
             const lista = document.getElementById("lista");
@@ -163,30 +155,45 @@
             database.ref("ubicaciones").on("value", (snapshot) => {
                 snapshot.forEach((childSnapshot) => {
                     const data = childSnapshot.val();
+                    const nombre = data.nombre;
                     const latitud = data.latitud;
                     const longitud = data.longitud;
                     const timestamp = data.timestamp;
 
                     // Añadir marcador al mapa
                     L.marker([latitud, longitud]).addTo(map)
-                        .bindPopup(`Ubicación: ${latitud}, ${longitud}<br>Fecha: ${timestamp}`);
+                        .bindPopup(`${nombre}: ${latitud}, ${longitud}<br>Fecha: ${timestamp}`);
 
                     // Añadir a la lista
                     const item = document.createElement("li");
-                    item.innerText = `Latitud: ${latitud}, Longitud: ${longitud} (${timestamp})`;
+                    item.innerText = `${nombre}: Latitud ${latitud}, Longitud ${longitud} (${timestamp})`;
                     lista.appendChild(item);
                 });
             });
         }
 
+        // Función para borrar el marcador al desconectarse
+        function borrarMarcador() {
+            if (window.miMarcador) {
+                window.miMarcador.remove(); // Eliminar el marcador del mapa
+            }
+            database.ref("ubicaciones/" + UserID).remove() // Eliminar la ubicación de Firebase
+                .then(() => {
+                    console.log("Marcador eliminado.");
+                })
+                .catch((error) => {
+                    console.error("Error al eliminar el marcador:", error);
+                });
+        }
+
         // Asignar evento al botón
         document.getElementById("btnObtenerUbicacion").addEventListener("click", obtenerUbicacion);
 
-        // Cargar la última ubicación al iniciar
-        cargarUltimaUbicacion();
-
         // Cargar ubicaciones guardadas al iniciar
         cargarUbicaciones();
+
+        // Borrar el marcador al cerrar la pestaña o navegador
+        window.addEventListener("beforeunload", borrarMarcador);
     </script>
 </body>
 </html>
