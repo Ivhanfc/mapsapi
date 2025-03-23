@@ -86,7 +86,38 @@
         document.getElementById("status").innerText = `Tu ID de usuario es: ${UserID}`;
 
         // Inicializar el mapa
-        const map = L.map('map').setView([19.432608, -99.133209], 12); // Centro en Ciudad de México
+        const map = L.map('map');
+
+        // Función para inicializar el mapa con la última ubicación o Tijuana
+        function inicializarMapa() {
+            // Coordenadas de Tijuana (por defecto)
+            const coordenadasPorDefecto = [32.5149, -117.0382]; // Latitud y longitud de Tijuana
+            const zoomPorDefecto = 12;
+
+            // Verificar si el usuario tiene una ubicación guardada
+            database.ref("ubicaciones/" + UserID).once("value", (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    // Centrar el mapa en la última ubicación del usuario
+                    const latitud = data.latitud;
+                    const longitud = data.longitud;
+                    map.setView([latitud, longitud], zoomPorDefecto);
+
+                    // Añadir marcador de la última ubicación
+                    L.marker([latitud, longitud]).addTo(map)
+                        .bindPopup("Última ubicación guardada")
+                        .openPopup();
+                } else {
+                    // Centrar el mapa en Tijuana si no hay ubicación guardada
+                    map.setView(coordenadasPorDefecto, zoomPorDefecto);
+                }
+            });
+        }
+
+        // Inicializar el mapa con la última ubicación o Tijuana
+        inicializarMapa();
+
+        // Añadir la capa base de OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
@@ -115,7 +146,7 @@
                             .openPopup();
 
                         // Centrar el mapa en la nueva ubicación
-                        map.setView([latitud, longitud], 15);
+                        map.setView([latitud, longitud], 12);
 
                         // Guardar el marcador en una variable global
                         window.miMarcador = marker;
@@ -172,7 +203,7 @@
             });
         }
 
-        // Función para borrar el marcador al desconectarse
+        // Función para borrar el marcador y la ubicación al desconectarse
         function borrarMarcador() {
             if (window.miMarcador) {
                 window.miMarcador.remove(); // Eliminar el marcador del mapa
