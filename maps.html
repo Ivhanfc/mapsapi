@@ -69,8 +69,20 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // Identificador único del usuario (puedes generarlo o obtenerlo de alguna manera)
-        const UserID = "user123"; // Cambia esto por un ID único del usuario
+        // Generar un ID aleatorio del 1 al 1000
+        function generarID() {
+            return Math.floor(Math.random() * 1000) + 1; // Número entre 1 y 1000
+        }
+
+        // Obtener o crear el ID del usuario
+        let UserID = localStorage.getItem("UserID");
+        if (!UserID) {
+            UserID = generarID(); // Generar un nuevo ID si no existe
+            localStorage.setItem("UserID", UserID); // Guardar el ID en localStorage
+        }
+
+        // Mostrar el ID del usuario en la interfaz
+        document.getElementById("status").innerText = `Tu ID de usuario es: ${UserID}`;
 
         // Inicializar el mapa
         const map = L.map('map').setView([19.432608, -99.133209], 12); // Centro en Ciudad de México
