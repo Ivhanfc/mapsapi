@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa con Marcadores Dinámicos</title>
+    <!-- Incluir el CSS de Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <!-- Incluir el SDK de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-database.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css" />
+
+    <!-- Leaflet.awesome-markers JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.min.js"></script>
+   <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+        #map {
+            width: 90%;
+            height: 60vh;
+            margin-top: 20px;
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        #listaUbicaciones {
+            margin-top: 20px;
+            width: 90%;
+            max-height: 20vh;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <button id="btnObtenerUbicacion">Obtener Mi Ubicación</button>
+    <p id="status">Presiona el botón para obtener tu ubicación.</p>
+    <div id="map"></div>
+    <div id="listaUbicaciones">
+        <h3>Ubicaciones Guardadas:</h3>
+        <ul id="lista"></ul>
+    </div>
+
+    <!-- Incluir el JS de Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBbR-O6hqk9gN2ohQuCCmV-vHiaEGhAL8s",
+            authDomain: "construyecercadeti.firebaseapp.com",
+            databaseURL: "https://construyecercadeti-default-rtdb.firebaseio.com",
+            projectId: "construyecercadeti",
+            storageBucket: "construyecercadeti.appspot.com",
+            messagingSenderId: "888808949632",
+            appId: "1:888808949632:web:677961b72573979c1b6365",
+            measurementId: "G-METG6NS3ZC"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Inicializar el mapa
+        const map = L.map('map').setView([19.432608, -99.133209], 12); // Centro en Ciudad de México
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Función para obtener la ubicación
+        function obtenerUbicacion() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const latitud = position.coords.latitude;
+                        const longitud = position.coords.longitude;
+                        document.getElementById("status").innerText = `Ubicación obtenida: Latitud ${latitud}, Longitud ${longitud}`;
+
+                        // Guardar en Firebase
+                        guardarEnFirebase(latitud, longitud);
+
+                        // Añadir marcador al mapa
+                        L.marker([latitud, longitud]).addTo(map)
+                            .bindPopup("Tu ubicación actual")
+                            .openPopup();
+
+                        // Centrar el mapa en la nueva ubicación
+                        map.setView([latitud, longitud], 15);
+                    },
+                    (error) => {
+                        document.getElementById("status").innerText = "Error al obtener la ubicación: " + error.message;
+                    }
+                );
+            } else {
+                document.getElementById("status").innerText = "Geolocalización no soportada en este navegador.";
+            }
+        }
+
+        // Función para guardar en Firebase
+        function guardarEnFirebase(latitud, longitud) {
+            const timestamp = new Date().toISOString();
+            const ubicacionRef = database.ref("ubicaciones").push(); // Crear una nueva clave única
+            ubicacionRef.set({
+                latitud: latitud,
+                longitud: longitud,
+                timestamp: timestamp
+            })
+            .then(() => {
+                document.getElementById("status").innerText = "Ubicación guardada en Firebase.";
+            })
+            .catch((error) => {
+                document.getElementById("status").innerText = "Error al guardar en Firebase: " + error.message;
+            });
+        }
+
+        // Función para cargar ubicaciones guardadas
+        function cargarUbicaciones() {
+            const lista = document.getElementById("lista");
+            lista.innerHTML = ""; // Limpiar la lista
+
+            database.ref("ubicaciones").on("value", (snapshot) => {
+                snapshot.forEach((childSnapshot) => {
+                    const data = childSnapshot.val();
+                    const latitud = data.latitud;
+                    const longitud = data.longitud;
+                    const timestamp = data.timestamp;
+
+                    // Añadir marcador al mapa
+                    L.marker([latitud, longitud]).addTo(map)
+                        .bindPopup(`Ubicación: ${latitud}, ${longitud}<br>Fecha: ${timestamp}`);
+
+                    // Añadir a la lista
+                    const item = document.createElement("li");
+                    item.innerText = `Latitud: ${latitud}, Longitud: ${longitud} (${timestamp})`;
+                    lista.appendChild(item);
+                });
+            });
+        }
+
+        // Asignar evento al botón
+        document.getElementById("btnObtenerUbicacion").addEventListener("click", obtenerUbicacion);
+
+        // Cargar ubicaciones al iniciar
+        cargarUbicaciones();
+    </script>
+</body>
+</html>
