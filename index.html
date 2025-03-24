@@ -144,4 +144,20 @@
                         timestamp: timestamp
                     });
 
-                    map.setView([latitud,
+                    map.setView([latitud, longitud], 15);
+                    L.marker([latitud, longitud]).addTo(map)
+                        .bindPopup("Ubicación guardada")
+                        .openPopup();
+
+                    alert("Ubicación guardada correctamente.");
+                    cargarUbicaciones();
+                }, () => {
+                    alert("No se pudo obtener la ubicación.");
+                });
+            } else {
+                alert("Tu navegador no soporta la geolocalización.");
+            }
+        });
+    </script>
+</body>
+</html>
