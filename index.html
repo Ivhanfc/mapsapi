@@ -284,7 +284,7 @@
                 this.disabled = true;
                 
                 // Enviar solicitud a tu backend que usa Twilio
-                const response = await fetch('https://tu-backend-twilio.com/enviar-sms', {
+                const response = await fetch('https://mapsapi-27zu.onrender.com/send-verification', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -319,7 +319,7 @@
                 this.disabled = true;
                 
                 // Verificar con tu backend que usa Twilio
-                const response = await fetch('https://tu-backend-twilio.com/verificar-codigo', {
+                const response = await fetch('https://mapsapi-27zu.onrender.com/verify-code', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
