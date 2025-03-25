@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const Twilio = require('twilio');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 // Middlewares
 app.use(cors());
