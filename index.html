@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro con Twilio y Firebase</title>
+</head>
+<body>
+    <h1>Registro con Twilio y Firebase</h1>
+    <input type="text" id="nombre" placeholder="Nombre">
+    <input type="text" id="telefono" placeholder="Número de teléfono">
+    <input type="password" id="password" placeholder="Contraseña">
+    <button id="btnEnviarCodigo">Enviar Código</button>
+    <input type="text" id="codigoVerificacion" placeholder="Ingresa el código">
+    <button id="btnVerificarCodigo">Verificar Código</button>
+    <p id="status"></p>
+
+    <!-- Incluir el SDK de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-firestore.js"></script>
+    <script>
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBbR-O6hqk9gN2ohQuCCmV-vHiaEGhAL8s",
+            authDomain: "construyecercadeti.firebaseapp.com",
+            databaseURL: "https://construyecercadeti-default-rtdb.firebaseio.com",
+            projectId: "construyecercadeti",
+            storageBucket: "construyecercadeti.appspot.com",
+            messagingSenderId: "888808949632",
+            appId: "1:888808949632:web:677961b72573979c1b6365",
+            measurementId: "G-METG6NS3ZC"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Variables para almacenar los datos del usuario
+        let usuario = {
+            nombre: '',
+            telefono: '',
+            password: ''
+        };
+
+        // Función para enviar el código de verificación
+        document.getElementById("btnEnviarCodigo").addEventListener("click", () => {
+            usuario.nombre = document.getElementById("nombre").value.trim();
+            usuario.telefono = document.getElementById("telefono").value.trim();
+            usuario.password = document.getElementById("password").value.trim();
+
+            if (!usuario.nombre || !usuario.telefono || !usuario.password) {
+                alert("Por favor, completa todos los campos.");
+                return;
+            }
+
+            // Enviar el código de verificación al backend
+            fetch('http://localhost:3000/send-verification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ phoneNumber: usuario.telefono })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Error en la solicitud.");
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById("status").innerText = data.message || "Código enviado correctamente.";
+            })
+            .catch(error => {
+                document.getElementById("status").innerText = "Error al enviar el código: " + error.message;
+            });
+        });
+
+        // Función para verificar el código y guardar los datos en Firestore
+        document.getElementById("btnVerificarCodigo").addEventListener("click", () => {
+            const codigo = document.getElementById("codigoVerificacion").value.trim();
+            if (!codigo) {
+                alert("Por favor, ingresa el código de verificación.");
+                return;
+            }
+
+            // Verificar el código con el backend
+            fetch('http://localhost:3000/verify-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ phoneNumber: usuario.telefono, code: codigo })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Error en la solicitud.");
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.message === 'Código verificado correctamente.') {
+                    document.getElementById("status").innerText = "Código verificado correctamente.";
+
+                    // Generar un ID único para el usuario
+                    const userId = Math.floor(Math.random() * 1000); // ID aleatorio
+                    localStorage.setItem("userId", userId); // Guardar el ID en localStorage
+
+                    // Guardar los datos del usuario en Firestore
+                    db.collection("usuarios").doc(userId.toString()).set({
+                        nombre: usuario.nombre,
+                        telefono: usuario.telefono,
+                        password: usuario.password
+                    })
+                    .then(() => {
+                        document.getElementById("status").innerText = "Usuario registrado correctamente.";
+                        window.location.href = "map4.html"; // Redirigir al siguiente HTML
+                    })
+                    .catch(error => {
+                        document.getElementById("status").innerText = "Error al guardar en Firestore: " + error.message;
+                    });
+                } else {
+                    document.getElementById("status").innerText = "Código incorrecto.";
+                }
+            })
+            .catch(error => {
+                document.getElementById("status").innerText = "Error al verificar el código: " + error.message;
+            });
+        });
+    </script>
+</body>
+</html>
