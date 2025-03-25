@@ -7,7 +7,7 @@ const Twilio = require('twilio');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Configuración CORS amplia para desarrollo y producción móvil
+// Configuración CORS para desarrollo y producción
 const corsOptions = {
   origin: '*', // Permite todas las origenes (ajusta en producción)
   methods: ['GET', 'POST', 'OPTIONS'],
@@ -136,4 +136,34 @@ app.post('/verify-code', validatePhoneNumber, async (req, res) => {
 app.get('/health', (req, res) => {
   res.json({
     status: 'active',
-    timestamp: new Date().to
+    timestamp: new Date().toISOString(),
+    service: 'Twilio Verification API'
+  });
+});
+
+// Ruta raíz
+app.get('/', (req, res) => {
+  res.json({ 
+    mensaje: "Servidor de verificación funcionando",
+    endpoints: {
+      send: '/send-verification (POST)',
+      verify: '/verify-code (POST)',
+      health: '/health (GET)'
+    }
+  });
+});
+
+// Manejo de errores global
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    status: 'error',
+    error: 'Error interno del servidor',
+    details: err.message
+  });
+});
+
+// Iniciar servidor
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+});
