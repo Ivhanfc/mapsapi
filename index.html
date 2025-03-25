@@ -5,99 +5,165 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro con Verificación</title>
     <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
         body {
-            font-family: Arial, sans-serif;
             max-width: 100%;
             margin: 0;
             padding: 15px;
-            background-color: #f5f5f5;
+            background-color: #f7f7f7;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         h1 {
             text-align: center;
-            color: #333;
+            color: #2c3e50;
+            margin-bottom: 25px;
             font-size: 24px;
+        }
+        .input-group {
             margin-bottom: 20px;
         }
-        .form-group {
-            margin-bottom: 15px;
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
         }
         input {
             width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
             font-size: 16px;
+            transition: border 0.3s;
+        }
+        input:focus {
+            border-color: #3498db;
+            outline: none;
         }
         button {
             width: 100%;
-            background-color: #4CAF50;
-            color: white;
-            padding: 14px 20px;
-            margin: 8px 0;
+            padding: 14px;
             border: none;
-            border-radius: 4px;
-            cursor: pointer;
+            border-radius: 6px;
             font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+        #btnEnviarCodigo {
+            background-color: #3498db;
+            color: white;
+        }
+        #btnEnviarCodigo:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+        #btnVerificarCodigo {
+            background-color: #2ecc71;
+            color: white;
+        }
+        #btnVerificarCodigo:hover:not(:disabled) {
+            background-color: #27ae60;
         }
         button:disabled {
-            background-color: #cccccc;
+            background-color: #bdc3c7 !important;
             cursor: not-allowed;
         }
-        button:hover:not(:disabled) {
-            background-color: #45a049;
-        }
         #status {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 4px;
-            font-size: 14px;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 20px 0;
             text-align: center;
+            font-size: 14px;
         }
         .success {
-            background-color: #dff0d8;
-            color: #3c763d;
+            background-color: #d5f5e3;
+            color: #27ae60;
+            border: 1px solid #2ecc71;
         }
         .error {
-            background-color: #f2dede;
-            color: #a94442;
+            background-color: #fadbd8;
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
         }
         .info {
-            background-color: #d9edf7;
-            color: #31708f;
+            background-color: #d6eaf8;
+            color: #2980b9;
+            border: 1px solid #3498db;
+        }
+        .hidden {
+            display: none !important;
+        }
+        #loader {
+            text-align: center;
+            margin: 15px 0;
+        }
+        .loader-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <h1>Registro con Verificación</h1>
-    
-    <div class="form-group">
-        <input type="text" id="nombre" placeholder="Nombre completo" required>
+    <div class="container">
+        <h1>Registro con Verificación</h1>
+        
+        <div class="input-group">
+            <label for="nombre">Nombre completo</label>
+            <input type="text" id="nombre" placeholder="Ej. Juan Pérez" required>
+        </div>
+        
+        <div class="input-group">
+            <label for="telefono">Número de teléfono</label>
+            <input type="tel" id="telefono" 
+                   placeholder="+521234567890" 
+                   pattern="\+[0-9]{11,15}" 
+                   title="Debe incluir código de país (ej. +52...)" 
+                   oninput="formatPhoneNumber(this)"
+                   required>
+        </div>
+        
+        <div class="input-group">
+            <label for="password">Contraseña</label>
+            <input type="password" id="password" placeholder="Mínimo 6 caracteres" minlength="6" required>
+        </div>
+        
+        <button id="btnEnviarCodigo">Enviar Código SMS</button>
+        
+        <div id="verificationSection" class="hidden">
+            <div class="input-group">
+                <label for="codigoVerificacion">Código de verificación</label>
+                <input type="text" id="codigoVerificacion" placeholder="6 dígitos" maxlength="6" required>
+            </div>
+            <button id="btnVerificarCodigo">Verificar y Registrar</button>
+        </div>
+        
+        <div id="loader" class="hidden">
+            <div class="loader-spinner"></div>
+            <p id="loadingText">Procesando...</p>
+        </div>
+        
+        <div id="status" class="info">Ingresa tus datos para comenzar</div>
     </div>
-    
-    <div class="form-group">
-        <input type="tel" id="telefono" 
-               placeholder="Ej. +521234567890" 
-               pattern="\+[0-9]{11,15}" 
-               title="Ingresa tu número con código de país (ej. +521234567890)"
-               oninput="formatPhoneNumber(this)"
-               required>
-    </div>
-    
-    <div class="form-group">
-        <input type="password" id="password" placeholder="Contraseña (mínimo 6 caracteres)" minlength="6" required>
-    </div>
-    
-    <button id="btnEnviarCodigo">Enviar Código de Verificación</button>
-    
-    <div class="form-group">
-        <input type="text" id="codigoVerificacion" placeholder="Ingresa el código de 6 dígitos" maxlength="6" disabled>
-    </div>
-    
-    <button id="btnVerificarCodigo" disabled>Verificar Código y Registrarse</button>
-    
-    <p id="status" class="info">Ingresa tus datos para comenzar</p>
 
     <!-- Elemento oculto para comunicación con App Inventor -->
     <div id="appInventorComms" style="display:none;"></div>
@@ -129,16 +195,15 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // Datos del usuario
-        let usuario = {
+        // Datos del usuario y estado
+        const usuario = {
             nombre: '',
             telefono: '',
             password: '',
             verificationId: ''
         };
-
-        // Estado de la aplicación
-        let appState = {
+        
+        const appState = {
             codigoEnviado: false,
             esperandoRespuesta: false
         };
@@ -147,23 +212,19 @@
         // Funciones de Comunicación
         // =============================================
 
-        // Detectar si estamos en App Inventor
         function isAppInventor() {
             return navigator.userAgent.includes('AppInventor');
         }
 
-        // Función para enviar mensajes
         function sendToAppInventor(data) {
             if (isAppInventor()) {
                 const commsElement = document.getElementById('appInventorComms');
                 commsElement.setAttribute('data-message', JSON.stringify(data));
                 commsElement.textContent = Date.now().toString();
-            } else {
-                console.log("Mensaje:", data);
             }
+            console.log("Mensaje:", data);
         }
 
-        // Función para recibir mensajes de App Inventor
         window.receiveFromApp = function(data) {
             try {
                 const jsonData = typeof data === 'string' ? JSON.parse(data) : data;
@@ -171,18 +232,21 @@
                 if (jsonData.telefono) {
                     document.getElementById('telefono').value = jsonData.telefono;
                     usuario.telefono = jsonData.telefono;
-                    showStatus("Número recibido de la app", false);
+                    showStatus("Número configurado: " + jsonData.telefono);
                 }
                 
                 if (jsonData.action === "reset") {
                     resetForm();
                 }
             } catch (e) {
-                console.error("Error al procesar datos de App Inventor:", e);
+                console.error("Error al procesar datos:", e);
             }
         };
 
-        // Función para formatear número de teléfono
+        // =============================================
+        // Funciones de Utilidad
+        // =============================================
+
         function formatPhoneNumber(input) {
             let value = input.value.replace(/[^\d+]/g, '');
             
@@ -198,14 +262,9 @@
             usuario.telefono = value;
         }
 
-        // =============================================
-        // Funciones de la Aplicación
-        // =============================================
-
-        // Función para mostrar estado
         function showStatus(message, isError = false) {
             const statusElement = document.getElementById("status");
-            statusElement.innerText = message;
+            statusElement.textContent = message;
             statusElement.className = isError ? "error" : 
                                     (message.includes("éxito") ? "success" : "info");
             
@@ -216,9 +275,21 @@
             });
         }
 
-        // Función para validar teléfono
+        function showLoader(show, text = "Procesando...") {
+            const loader = document.getElementById("loader");
+            const loadingText = document.getElementById("loadingText");
+            
+            loadingText.textContent = text;
+            loader.classList.toggle("hidden", !show);
+        }
+
         function validarTelefono(telefono) {
             const regex = /^\+(?:[0-9]●?){6,14}[0-9]$/;
+            
+            if (!telefono) {
+                showStatus("Ingresa un número de teléfono", true);
+                return false;
+            }
             
             if (!telefono.startsWith('+')) {
                 showStatus("El número debe comenzar con + y código de país", true);
@@ -238,70 +309,56 @@
             return true;
         }
 
-        // Función para validar contraseña
         function validarPassword(password) {
-            if (password.length < 6) {
+            if (!password || password.length < 6) {
                 showStatus("La contraseña debe tener al menos 6 caracteres", true);
                 return false;
             }
             return true;
         }
 
-        // Función para actualizar UI
         function updateUI() {
             document.getElementById("btnEnviarCodigo").disabled = appState.esperandoRespuesta;
             document.getElementById("btnVerificarCodigo").disabled = 
                 !appState.codigoEnviado || appState.esperandoRespuesta;
             document.getElementById("codigoVerificacion").disabled = !appState.codigoEnviado;
+            
+            document.getElementById("verificationSection").classList.toggle("hidden", !appState.codigoEnviado);
         }
 
-        // Función para resetear el formulario
         function resetForm() {
-            document.getElementById("nombre").value = "";
-            document.getElementById("telefono").value = "";
-            document.getElementById("password").value = "";
-            document.getElementById("codigoVerificacion").value = "";
+            document.querySelectorAll("input").forEach(input => input.value = "");
             
-            usuario = {
-                nombre: '',
-                telefono: '',
-                password: '',
-                verificationId: ''
-            };
-            
-            appState = {
-                codigoEnviado: false,
-                esperandoRespuesta: false
-            };
+            Object.keys(usuario).forEach(key => usuario[key] = '');
+            appState.codigoEnviado = false;
+            appState.esperandoRespuesta = false;
             
             updateUI();
-            showStatus("Formulario reiniciado. Ingresa nuevos datos.", false);
+            showStatus("Formulario reiniciado. Ingresa nuevos datos.");
         }
 
-        // Función para enviar código de verificación
+        // =============================================
+        // Funciones Principales
+        // =============================================
+
         async function enviarCodigoVerificacion() {
             usuario.nombre = document.getElementById("nombre").value.trim();
             usuario.telefono = document.getElementById("telefono").value.trim();
             usuario.password = document.getElementById("password").value.trim();
 
-            if (!usuario.nombre) {
-                showStatus("Por favor, ingresa tu nombre completo", true);
+            if (!usuario.nombre || !validarTelefono(usuario.telefono) || !validarPassword(usuario.password)) {
                 return;
             }
 
-            if (!validarTelefono(usuario.telefono)) return;
-            if (!validarPassword(usuario.password)) return;
-
             appState.esperandoRespuesta = true;
             updateUI();
+            showLoader(true, "Enviando código SMS...");
             showStatus("Enviando código de verificación...");
 
             try {
                 const response = await fetch('https://mapsapi-27zu.onrender.com/send-verification', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         phoneNumber: usuario.telefono,
                         nombre: usuario.nombre
@@ -316,7 +373,7 @@
                 
                 if (data.success) {
                     appState.codigoEnviado = true;
-                    showStatus("Código enviado. Revisa tu teléfono.");
+                    showStatus("✓ Código enviado. Revisa tu teléfono.");
                     usuario.verificationId = data.verificationId || '';
                     
                     sendToAppInventor({
@@ -327,14 +384,14 @@
                     throw new Error(data.message || "Error al enviar el código");
                 }
             } catch (error) {
-                showStatus("Error: " + error.message, true);
+                showStatus("✗ Error: " + error.message, true);
             } finally {
                 appState.esperandoRespuesta = false;
+                showLoader(false);
                 updateUI();
             }
         }
 
-        // Función para verificar código y registrar
         async function verificarCodigoYRegistrar() {
             const codigo = document.getElementById("codigoVerificacion").value.trim();
             
@@ -345,14 +402,13 @@
 
             appState.esperandoRespuesta = true;
             updateUI();
+            showLoader(true, "Verificando código...");
             showStatus("Verificando código...");
 
             try {
                 const response = await fetch('https://mapsapi-27zu.onrender.com/verify-code', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         phoneNumber: usuario.telefono,
                         code: codigo,
@@ -372,22 +428,24 @@
                     throw new Error(data.message || "Código incorrecto");
                 }
             } catch (error) {
-                showStatus("Error: " + error.message, true);
+                showStatus("✗ Error: " + error.message, true);
             } finally {
                 appState.esperandoRespuesta = false;
+                showLoader(false);
                 updateUI();
             }
         }
 
-        // Función para completar el registro en Firebase
         async function completarRegistro() {
             try {
-                // Crear usuario en Firebase Auth
+                showLoader(true, "Registrando usuario...");
+                
+                // 1. Crear usuario en Firebase Auth
                 const email = usuario.telefono.replace(/[^\d]/g, '') + "@construyecercadeti.com";
                 const userCredential = await auth.createUserWithEmailAndPassword(email, usuario.password);
                 const userId = userCredential.user.uid;
 
-                // Guardar datos en Firestore
+                // 2. Guardar datos en Firestore
                 await db.collection("usuarios").doc(userId).set({
                     nombre: usuario.nombre,
                     telefono: usuario.telefono,
@@ -395,9 +453,9 @@
                     verificado: true
                 });
 
-                showStatus("¡Registro completado con éxito!", false);
+                showStatus("✓ ¡Registro completado con éxito!");
                 
-                // Enviar datos a App Inventor
+                // 3. Notificar a App Inventor
                 sendToAppInventor({
                     type: "registro_completo",
                     userId: userId,
@@ -405,33 +463,31 @@
                     telefono: usuario.telefono
                 });
 
-                // Redirigir si no estamos en App Inventor
+                // 4. Redirigir si no es App Inventor
                 if (!isAppInventor()) {
                     setTimeout(() => {
                         window.location.href = "map4.html?userId=" + userId;
                     }, 2000);
                 }
             } catch (error) {
-                showStatus("Error al registrar: " + error.message, true);
+                showStatus("✗ Error al registrar: " + error.message, true);
+            } finally {
+                showLoader(false);
             }
         }
 
         // =============================================
-        // Event Listeners
+        // Inicialización
         // =============================================
 
         document.getElementById("btnEnviarCodigo").addEventListener("click", enviarCodigoVerificacion);
         document.getElementById("btnVerificarCodigo").addEventListener("click", verificarCodigoYRegistrar);
 
-        // Inicialización
         document.addEventListener("DOMContentLoaded", function() {
             updateUI();
-            sendToAppInventor({
-                type: "ready",
-                message: "Página cargada correctamente"
-            });
+            sendToAppInventor({ type: "ready", message: "Página cargada" });
             
-            // Si hay parámetros en la URL (para recibir datos de App Inventor)
+            // Manejar parámetros de URL
             if (window.location.hash) {
                 const params = new URLSearchParams(window.location.hash.substring(1));
                 if (params.has('telefono')) {
