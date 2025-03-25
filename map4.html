@@ -279,124 +279,59 @@
                     L.marker([latitud, longitud], {
                         icon: iconos[tipo] || iconos.default
                     }).addTo(map)
-                    .bindPopup(`<b><i class='fas fa-${tipo === 'administrador' ? 'crown' : tipo === 'tecnico' ? 'tools' : 'user'}'></i> ${nombre}</b><br>
-                              <small>Tipo: ${tipo}</small><br>
-                              <small>${latitud.toFixed(4)}, ${longitud.toFixed(4)}</small><br>
-                              <small>${timestamp}</small>`);
+                    .bindPopup(`<b><i class='fas fa-${tipo === 'administrador' ? 'star' : 'tools'}'></i> ${nombre}</b><br>Tipo: ${tipo}<br><small>${timestamp}</small>`);
 
-                    // Añadir a la lista
-                    const item = document.createElement("li");
-                    item.innerHTML = `
-                        <span>
-                            <i class="fas fa-${tipo === 'administrador' ? 'crown' : tipo === 'tecnico' ? 'tools' : 'user'}"></i>
-                            <strong>${nombre}</strong> (${tipo})
-                        </span>
-                        <span>
-                            <small>${latitud.toFixed(4)}, ${longitud.toFixed(4)}</small><br>
-                            <small>${timestamp}</small>
-                        </span>
-                    `;
-                    lista.appendChild(item);
+                    // Añadir ubicación a la lista
+                    const li = document.createElement("li");
+                    li.innerHTML = `${nombre} <span>(${tipo})</span> - ${timestamp}`;
+                    lista.appendChild(li);
                 });
-                showLoader(false);
-            }, (error) => {
-                console.error("Error al cargar ubicaciones:", error);
-                statusElement.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Error al cargar ubicaciones: ${error.message}`;
+
                 showLoader(false);
             });
         }
 
-        // Mostrar/ocultar loader
+        // Función para mostrar el indicador de carga
         function showLoader(show) {
             document.getElementById("loader").style.display = show ? "block" : "none";
-            document.getElementById("botonUbicacion").disabled = show;
         }
 
-        // Cargar ubicaciones al iniciar
-        cargarUbicaciones();
-
-        // Manejar el botón de ubicación
+        // Configurar evento para guardar la ubicación del usuario
         document.getElementById("botonUbicacion").addEventListener("click", () => {
-            if (!userId) {
-                alert("Por favor regístrese primero para guardar ubicaciones");
+            if (!navigator.geolocation) {
+                alert("Tu navegador no soporta geolocalización.");
                 return;
             }
 
-            if (navigator.geolocation) {
-                statusElement.innerHTML = '<i class="fas fa-compass"></i> Obteniendo ubicación...';
-                showLoader(true);
-                
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const latitud = position.coords.latitude;
-                        const longitud = position.coords.longitude;
-                        const timestamp = new Date().toLocaleString('es-MX', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
-                        const tipoUsuario = getTipoUsuario(userId);
+            showLoader(true);
+            navigator.geolocation.getCurrentPosition((position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                const timestamp = new Date().toISOString();
+                const tipo = getTipoUsuario(userId);
 
-                        // Guardar en Firebase
-                        database.ref("ubicaciones/" + userId).set({
-                            nombre: `Usuario ${userId}`,
-                            latitud: latitud,
-                            longitud: longitud,
-                            timestamp: timestamp,
-                            tipo: tipoUsuario
-                        }).then(() => {
-                            // Actualizar mapa
-                            map.setView([latitud, longitud], 16);
-                            
-                            // Añadir nuevo marcador
-                            L.marker([latitud, longitud], {
-                                icon: iconos[tipoUsuario] || iconos.default
-                            }).addTo(map)
-                            .bindPopup(`<b><i class='fas fa-map-pin'></i> Tu ubicación actual</b><br><small>Guardada: ${timestamp}</small>`)
-                            .openPopup();
-
-                            // Recargar lista
-                            cargarUbicaciones();
-                            statusElement.innerHTML = `<i class="fas fa-check-circle"></i> Ubicación guardada correctamente`;
-                        }).catch(error => {
-                            console.error("Error al guardar:", error);
-                            statusElement.innerHTML = `<i class="fas fa-times-circle"></i> Error al guardar ubicación: ${error.message}`;
-                            showLoader(false);
-                        });
-                    },
-                    (error) => {
-                        console.error("Error de geolocalización:", error);
-                        let errorMessage = "Error al obtener ubicación";
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                errorMessage = "Se denegó el permiso de geolocalización";
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                errorMessage = "La información de ubicación no está disponible";
-                                break;
-                            case error.TIMEOUT:
-                                errorMessage = "La solicitud de ubicación tardó demasiado";
-                                break;
-                        }
-                        statusElement.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${errorMessage}`;
-                        showLoader(false);
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 0
-                    }
-                );
-            } else {
-                statusElement.innerHTML = '<i class="fas fa-times-circle"></i> Geolocalización no soportada por tu navegador';
-            }
+                // Guardar la ubicación en Firebase
+                database.ref("ubicaciones/" + userId).set({
+                    latitud: lat,
+                    longitud: lon,
+                    nombre: "Ubicación del usuario",
+                    timestamp: timestamp
+                }).then(() => {
+                    statusElement.innerHTML = "<i class='fas fa-check'></i> Ubicación guardada.";
+                    cargarUbicaciones(); // Cargar ubicaciones después de guardar
+                }).catch((error) => {
+                    statusElement.innerHTML = "<i class='fas fa-exclamation-circle'></i> Error al guardar la ubicación.";
+                    showLoader(false);
+                    console.error(error);
+                });
+            }, (error) => {
+                alert("Error al obtener la ubicación: " + error.message);
+                showLoader(false);
+            });
         });
 
-        // Añadir control de escala
-        L.control.scale({ imperial: false }).addTo(map);
+        // Cargar ubicaciones cada vez que se inicia la página
+        cargarUbicaciones();
     </script>
 </body>
 </html>
