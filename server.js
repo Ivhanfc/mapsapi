@@ -8,7 +8,15 @@ const port = 3000; // Define el puerto
 
 // Permitir solicitudes CORS desde cualquier origen
 app.use(cors());
-
+// Rutas
+app.get('/api/data', (req, res) => {
+    res.json({ mensaje: "Hola desde el servidor en Render!" });
+  });
+  
+  app.listen(PORT, () => {
+    console.log(`Servidor corriendo en puerto ${PORT}`);
+  });
+  
 // Configura el body parser para procesar datos JSON
 app.use(bodyParser.json());
 
