@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa con Marcadores Dinámicos</title>
+    <title>Mapa de Tijuana con Marcadores Dinámicos</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-database.js"></script>
@@ -23,10 +23,13 @@
             width: 90%;
             height: 60vh;
             margin-top: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
         }
         #status {
             margin-top: 20px;
             font-weight: bold;
+            color: #333;
         }
         #listaUbicaciones {
             margin-top: 20px;
@@ -35,41 +38,53 @@
             overflow-y: auto;
             border: 1px solid #ccc;
             padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
         }
         #botonUbicacion {
             margin-top: 10px;
-            padding: 10px;
+            padding: 10px 20px;
             background-color: #28a745;
             color: white;
             border: none;
             cursor: pointer;
             font-size: 16px;
             border-radius: 5px;
+            transition: background-color 0.3s;
         }
         #botonUbicacion:hover {
             background-color: #218838;
         }
+        #lista {
+            list-style-type: none;
+            padding: 0;
+        }
+        #lista li {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        #lista li:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 <body>
-    <h1>Mapa con Marcadores Dinámicos</h1>
-    <p id="status">Bienvenido de nuevo.</p>
-    <button id="botonUbicacion">Obtener Mi Ubicación</button>
+    <h1>Mapa de Tijuana con Marcadores</h1>
+    <p id="status">Bienvenido al sistema de ubicaciones</p>
+    <button id="botonUbicacion">Guardar Mi Ubicación Actual</button>
     <div id="map"></div>
     <div id="listaUbicaciones">
-        <h3>Ubicaciones Guardadas:</h3>
+        <h3>Ubicaciones Registradas:</h3>
         <ul id="lista"></ul>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
-              // Ejemplo en tu script.js o dentro de <script> en index.html
-fetch('https://mapsapi-27zu.onrender.com/api/data')
-  .then(response => response.json())
-  .then(data => {
-    console.log(data);
-    document.getElementById('resultado').innerHTML = data.mensaje;
-  })
+        // Coordenadas de Tijuana (centro del mapa)
+        const CENTRO_TIJUANA = [32.5149, -117.0382];
+        const ZOOM_INICIAL = 12;
+
+        // Configuración de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBbR-O6hqk9gN2ohQuCCmV-vHiaEGhAL8s",
             authDomain: "construyecercadeti.firebaseapp.com",
@@ -81,55 +96,119 @@ fetch('https://mapsapi-27zu.onrender.com/api/data')
             measurementId: "G-METG6NS3ZC"
         };
 
+        // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        const UserID = localStorage.getItem("UserID");
-        document.getElementById("status").innerText = `Tu ID de usuario es: ${UserID}`;
+        // Obtener el ID de usuario del localStorage
+        const userId = localStorage.getItem("userId");
+        document.getElementById("status").innerText = userId 
+            ? `Usuario ID: ${userId}` 
+            : "Usuario no identificado";
 
-        const map = L.map('map');
-        function inicializarMapa() {
-            const coordenadasPorDefecto = [32.5149, -117.0382];
-            const zoomPorDefecto = 12;
+        // Crear iconos personalizados para diferentes tipos de usuarios
+        const iconos = {
+            cliente: L.AwesomeMarkers.icon({
+                icon: 'user',
+                prefix: 'fa',
+                markerColor: 'blue',
+                iconColor: 'white'
+            }),
+            administrador: L.AwesomeMarkers.icon({
+                icon: 'star',
+                prefix: 'fa',
+                markerColor: 'red',
+                iconColor: 'white'
+            }),
+            tecnico: L.AwesomeMarkers.icon({
+                icon: 'wrench',
+                prefix: 'fa',
+                markerColor: 'green',
+                iconColor: 'white'
+            }),
+            default: L.AwesomeMarkers.icon({
+                icon: 'map-marker',
+                prefix: 'fa',
+                markerColor: 'orange',
+                iconColor: 'white'
+            })
+        };
 
-            database.ref("ubicaciones/" + UserID).once("value", (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    const latitud = data.latitud;
-                    const longitud = data.longitud;
-                    map.setView([latitud, longitud], zoomPorDefecto);
-                    L.marker([latitud, longitud]).addTo(map)
-                        .bindPopup("Tu última ubicación guardada")
-                        .openPopup();
-                } else {
-                    map.setView(coordenadasPorDefecto, zoomPorDefecto);
-                }
-            });
-        }
+        // Inicializar el mapa centrado en Tijuana
+        const map = L.map('map').setView(CENTRO_TIJUANA, ZOOM_INICIAL);
 
-        inicializarMapa();
-
+        // Añadir capa base de OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
+        // Marcador para el centro de Tijuana
+        L.marker(CENTRO_TIJUANA, {
+            icon: L.AwesomeMarkers.icon({
+                icon: 'flag',
+                prefix: 'fa',
+                markerColor: 'purple',
+                iconColor: 'white'
+            })
+        }).addTo(map)
+        .bindPopup("<b>Tijuana</b><br>Centro de la ciudad")
+        .openPopup();
+
+        // Función para determinar el tipo de usuario (simulado)
+        function getTipoUsuario(userId) {
+            // En una aplicación real, esto vendría de tu base de datos
+            if (!userId) return 'default';
+            const lastDigit = parseInt(userId.slice(-1));
+            if (lastDigit % 3 === 0) return 'administrador';
+            if (lastDigit % 2 === 0) return 'tecnico';
+            return 'cliente';
+        }
+
+        // Cargar ubicaciones del usuario actual
+        if (userId) {
+            database.ref("ubicaciones/" + userId).once("value", (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    const tipo = getTipoUsuario(userId);
+                    L.marker([data.latitud, data.longitud], {
+                        icon: iconos[tipo] || iconos.default
+                    }).addTo(map)
+                    .bindPopup(`<b>Tu ubicación</b><br>${data.nombre || 'Usuario'} (${tipo})<br>${data.timestamp || ''}`)
+                    .openPopup();
+                }
+            });
+        }
+
+        // Cargar todas las ubicaciones
         function cargarUbicaciones() {
             const lista = document.getElementById("lista");
             lista.innerHTML = "";
 
             database.ref("ubicaciones").on("value", (snapshot) => {
+                // Limpiar marcadores existentes (excepto el marcador central)
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Marker && layer !== marcadorCentral) {
+                        map.removeLayer(layer);
+                    }
+                });
+
                 snapshot.forEach((childSnapshot) => {
                     const data = childSnapshot.val();
-                    const nombre = data.nombre;
+                    const nombre = data.nombre || "Usuario " + childSnapshot.key;
                     const latitud = data.latitud;
                     const longitud = data.longitud;
-                    const timestamp = data.timestamp;
+                    const timestamp = data.timestamp || "Fecha desconocida";
+                    const tipo = getTipoUsuario(childSnapshot.key);
 
-                    L.marker([latitud, longitud]).addTo(map)
-                        .bindPopup(`${nombre}: ${latitud}, ${longitud}<br>Fecha: ${timestamp}`);
+                    // Añadir marcador al mapa con icono personalizado
+                    L.marker([latitud, longitud], {
+                        icon: iconos[tipo] || iconos.default
+                    }).addTo(map)
+                    .bindPopup(`<b>${nombre}</b><br>Tipo: ${tipo}<br>${latitud}, ${longitud}<br>${timestamp}`);
 
+                    // Añadir a la lista
                     const item = document.createElement("li");
-                    item.innerText = `${nombre}: Latitud ${latitud}, Longitud ${longitud} (${timestamp})`;
+                    item.innerHTML = `<strong>${nombre}</strong> (${tipo}): ${latitud.toFixed(4)}, ${longitud.toFixed(4)} - ${timestamp}`;
                     lista.appendChild(item);
                 });
             });
@@ -137,32 +216,57 @@ fetch('https://mapsapi-27zu.onrender.com/api/data')
 
         cargarUbicaciones();
 
+        // Manejar el botón de ubicación
         document.getElementById("botonUbicacion").addEventListener("click", () => {
+            if (!userId) {
+                alert("Por favor regístrese primero para guardar ubicaciones");
+                return;
+            }
+
             if (navigator.geolocation) {
+                document.getElementById("status").innerText = "Obteniendo ubicación...";
+                
                 navigator.geolocation.getCurrentPosition((position) => {
                     const latitud = position.coords.latitude;
                     const longitud = position.coords.longitude;
                     const timestamp = new Date().toLocaleString();
+                    const tipoUsuario = getTipoUsuario(userId);
 
-                    database.ref("ubicaciones/" + UserID).set({
-                        nombre: `Usuario ${UserID}`,
+                    // Guardar en Firebase
+                    database.ref("ubicaciones/" + userId).set({
+                        nombre: `Usuario ${userId}`,
                         latitud: latitud,
                         longitud: longitud,
-                        timestamp: timestamp
-                    });
-
-                    map.setView([latitud, longitud], 15);
-                    L.marker([latitud, longitud]).addTo(map)
-                        .bindPopup("Ubicación guardada")
+                        timestamp: timestamp,
+                        tipo: tipoUsuario
+                    }).then(() => {
+                        // Actualizar mapa
+                        map.setView([latitud, longitud], 15);
+                        
+                        // Añadir nuevo marcador
+                        L.marker([latitud, longitud], {
+                            icon: iconos[tipoUsuario] || iconos.default
+                        }).addTo(map)
+                        .bindPopup("<b>Tu ubicación actual</b><br>Guardada: " + timestamp)
                         .openPopup();
 
-                    alert("Ubicación guardada correctamente.");
-                    cargarUbicaciones();
-                }, () => {
-                    alert("No se pudo obtener la ubicación.");
+                        // Recargar lista
+                        cargarUbicaciones();
+                        document.getElementById("status").innerText = "Ubicación guardada correctamente";
+                    }).catch(error => {
+                        console.error("Error al guardar:", error);
+                        document.getElementById("status").innerText = "Error al guardar ubicación";
+                    });
+                }, (error) => {
+                    console.error("Error de geolocalización:", error);
+                    document.getElementById("status").innerText = "Error al obtener ubicación: " + error.message;
+                }, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
                 });
             } else {
-                alert("Tu navegador no soporta la geolocalización.");
+                document.getElementById("status").innerText = "Geolocalización no soportada por tu navegador";
             }
         });
     </script>
