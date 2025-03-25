@@ -19,14 +19,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-firestore.js"></script>
     <script>
-        // Ejemplo en tu script.js o dentro de <script> en index.html
-fetch('https://mapsapi-27zu.onrender.com/api/data')
-  .then(response => response.json())
-  .then(data => {
-    console.log(data);
-    document.getElementById('resultado').innerHTML = data.mensaje;
-  })
-  .catch(error => console.error('Error:', error));
         // Configuración de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBbR-O6hqk9gN2ohQuCCmV-vHiaEGhAL8s",
@@ -62,7 +54,7 @@ fetch('https://mapsapi-27zu.onrender.com/api/data')
             }
 
             // Enviar el código de verificación al backend
-            fetch('http://localhost:3000/send-verification', {
+            fetch('https://mapsapi-27zu.onrender.com/send-verification', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -71,7 +63,7 @@ fetch('https://mapsapi-27zu.onrender.com/api/data')
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error("Error en la solicitud.");
+                    return response.text().then(text => { throw new Error(text) });
                 }
                 return response.json();
             })
@@ -79,6 +71,7 @@ fetch('https://mapsapi-27zu.onrender.com/api/data')
                 document.getElementById("status").innerText = data.message || "Código enviado correctamente.";
             })
             .catch(error => {
+                console.error('Error completo:', error);
                 document.getElementById("status").innerText = "Error al enviar el código: " + error.message;
             });
         });
@@ -92,21 +85,24 @@ fetch('https://mapsapi-27zu.onrender.com/api/data')
             }
 
             // Verificar el código con el backend
-            fetch('http://localhost:3000/verify-code', {
+            fetch('https://mapsapi-27zu.onrender.com', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ phoneNumber: usuario.telefono, code: codigo })
+                body: JSON.stringify({
+                    phoneNumber: usuario.telefono,
+                    code: codigo
+                })
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error("Error en la solicitud.");
+                    return response.text().then(text => { throw new Error(text) });
                 }
                 return response.json();
             })
             .then(data => {
-                if (data.message === 'Código verificado correctamente.') {
+                if (data.message === 'Código verificado correctamente') {
                     document.getElementById("status").innerText = "Código verificado correctamente.";
 
                     // Generar un ID único para el usuario
@@ -117,13 +113,15 @@ fetch('https://mapsapi-27zu.onrender.com/api/data')
                     db.collection("usuarios").doc(userId.toString()).set({
                         nombre: usuario.nombre,
                         telefono: usuario.telefono,
-                        password: usuario.password
+                        password: usuario.password,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     })
                     .then(() => {
                         document.getElementById("status").innerText = "Usuario registrado correctamente.";
                         window.location.href = "map4.html"; // Redirigir al siguiente HTML
                     })
                     .catch(error => {
+                        console.error("Error al guardar en Firestore:", error);
                         document.getElementById("status").innerText = "Error al guardar en Firestore: " + error.message;
                     });
                 } else {
@@ -131,6 +129,7 @@ fetch('https://mapsapi-27zu.onrender.com/api/data')
                 }
             })
             .catch(error => {
+                console.error('Error completo:', error);
                 document.getElementById("status").innerText = "Error al verificar el código: " + error.message;
             });
         });
