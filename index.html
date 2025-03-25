@@ -318,10 +318,10 @@
         }
 
         function updateUI() {
-            document.getElementById("btnEnviarCodigo").disabled = appState.esperandoRespuesta;
-            document.getElementById("btnVerificarCodigo").disabled = 
+            document.getElementById("btnEnviarCodigo").enabled = appState.esperandoRespuesta;
+            document.getElementById("btnVerificarCodigo").enabled = 
                 !appState.codigoEnviado || appState.esperandoRespuesta;
-            document.getElementById("codigoVerificacion").disabled = !appState.codigoEnviado;
+            document.getElementById("codigoVerificacion").enabled = !appState.codigoEnviado;
             
             document.getElementById("verificationSection").classList.toggle("hidden", !appState.codigoEnviado);
         }
