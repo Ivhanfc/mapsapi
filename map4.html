@@ -4,85 +4,141 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mapa de Tijuana con Marcadores Dinámicos</title>
+    <!-- Hojas de estilo actualizadas -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-database.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.awesome-markers@2.0.2/dist/leaflet.awesome-markers.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 0;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
+            background-color: #f5f7fa;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
         }
         #map {
-            width: 90%;
+            width: 100%;
+            max-width: 900px;
             height: 60vh;
-            margin-top: 20px;
+            margin: 20px 0;
             border: 2px solid #ddd;
-            border-radius: 8px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         #status {
-            margin-top: 20px;
-            font-weight: bold;
-            color: #333;
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #e8f4fd;
+            color: #31708f;
+            text-align: center;
+            width: 100%;
+            max-width: 900px;
         }
         #listaUbicaciones {
-            margin-top: 20px;
-            width: 90%;
-            max-height: 20vh;
+            width: 100%;
+            max-width: 900px;
+            max-height: 25vh;
             overflow-y: auto;
-            border: 1px solid #ccc;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
         }
-        #botonUbicacion {
-            margin-top: 10px;
-            padding: 10px 20px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-        }
-        #botonUbicacion:hover {
-            background-color: #218838;
+        #listaUbicaciones h3 {
+            margin-top: 0;
+            color: #34495e;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
         }
         #lista {
             list-style-type: none;
             padding: 0;
+            margin: 0;
         }
         #lista li {
-            padding: 5px;
-            border-bottom: 1px solid #eee;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
         }
         #lista li:last-child {
             border-bottom: none;
         }
+        #botonUbicacion {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #botonUbicacion:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        #botonUbicacion:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <h1>Mapa de Tijuana con Marcadores</h1>
-    <p id="status">Bienvenido al sistema de ubicaciones</p>
-    <button id="botonUbicacion">Guardar Mi Ubicación Actual</button>
+    <h1>Mapa de Tijuana con Marcadores Dinámicos</h1>
+    <p id="status">Cargando sistema de ubicaciones...</p>
+    <button id="botonUbicacion">
+        <i class="fas fa-map-marker-alt"></i> Guardar Mi Ubicación Actual
+    </button>
     <div id="map"></div>
     <div id="listaUbicaciones">
-        <h3>Ubicaciones Registradas:</h3>
+        <h3><i class="fas fa-list"></i> Ubicaciones Registradas</h3>
         <ul id="lista"></ul>
     </div>
+    <div id="loader" class="loader"></div>
 
+    <!-- Scripts actualizados -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.awesome-markers@2.0.2/dist/leaflet.awesome-markers.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-database.js"></script>
+
     <script>
         // Coordenadas de Tijuana (centro del mapa)
         const CENTRO_TIJUANA = [32.5149, -117.0382];
-        const ZOOM_INICIAL = 12;
+        const ZOOM_INICIAL = 13;
+        let marcadorCentral;
 
         // Configuración de Firebase
         const firebaseConfig = {
@@ -102,9 +158,14 @@
 
         // Obtener el ID de usuario del localStorage
         const userId = localStorage.getItem("userId");
-        document.getElementById("status").innerText = userId 
-            ? `Usuario ID: ${userId}` 
-            : "Usuario no identificado";
+        const statusElement = document.getElementById("status");
+        
+        if (userId) {
+            statusElement.innerHTML = `<i class="fas fa-user-circle"></i> Usuario ID: ${userId}`;
+        } else {
+            statusElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Usuario no identificado. <a href="index.html">Regístrese aquí</a>';
+            document.getElementById("botonUbicacion").disabled = true;
+        }
 
         // Crear iconos personalizados para diferentes tipos de usuarios
         const iconos = {
@@ -112,7 +173,8 @@
                 icon: 'user',
                 prefix: 'fa',
                 markerColor: 'blue',
-                iconColor: 'white'
+                iconColor: 'white',
+                extraClasses: 'animate__animated animate__pulse'
             }),
             administrador: L.AwesomeMarkers.icon({
                 icon: 'star',
@@ -121,13 +183,13 @@
                 iconColor: 'white'
             }),
             tecnico: L.AwesomeMarkers.icon({
-                icon: 'wrench',
+                icon: 'tools',
                 prefix: 'fa',
                 markerColor: 'green',
                 iconColor: 'white'
             }),
             default: L.AwesomeMarkers.icon({
-                icon: 'map-marker',
+                icon: 'map-marker-alt',
                 prefix: 'fa',
                 markerColor: 'orange',
                 iconColor: 'white'
@@ -139,24 +201,25 @@
 
         // Añadir capa base de OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 18
         }).addTo(map);
 
         // Marcador para el centro de Tijuana
-        L.marker(CENTRO_TIJUANA, {
+        marcadorCentral = L.marker(CENTRO_TIJUANA, {
             icon: L.AwesomeMarkers.icon({
                 icon: 'flag',
                 prefix: 'fa',
                 markerColor: 'purple',
                 iconColor: 'white'
-            })
+            }),
+            zIndexOffset: 1000
         }).addTo(map)
-        .bindPopup("<b>Tijuana</b><br>Centro de la ciudad")
+        .bindPopup("<b><i class='fas fa-flag'></i> Tijuana</b><br>Centro de la ciudad")
         .openPopup();
 
-        // Función para determinar el tipo de usuario (simulado)
+        // Función para determinar el tipo de usuario
         function getTipoUsuario(userId) {
-            // En una aplicación real, esto vendría de tu base de datos
             if (!userId) return 'default';
             const lastDigit = parseInt(userId.slice(-1));
             if (lastDigit % 3 === 0) return 'administrador';
@@ -173,16 +236,20 @@
                     L.marker([data.latitud, data.longitud], {
                         icon: iconos[tipo] || iconos.default
                     }).addTo(map)
-                    .bindPopup(`<b>Tu ubicación</b><br>${data.nombre || 'Usuario'} (${tipo})<br>${data.timestamp || ''}`)
+                    .bindPopup(`<b><i class='fas fa-user'></i> Tu ubicación</b><br>${data.nombre || 'Usuario'} (${tipo})<br><small>${data.timestamp || ''}</small>`)
                     .openPopup();
                 }
+            }).catch(error => {
+                console.error("Error al cargar ubicación:", error);
+                statusElement.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error al cargar ubicación: ${error.message}`;
             });
         }
 
         // Cargar todas las ubicaciones
         function cargarUbicaciones() {
+            showLoader(true);
             const lista = document.getElementById("lista");
-            lista.innerHTML = "";
+            lista.innerHTML = "<li>Cargando ubicaciones...</li>";
 
             database.ref("ubicaciones").on("value", (snapshot) => {
                 // Limpiar marcadores existentes (excepto el marcador central)
@@ -191,6 +258,14 @@
                         map.removeLayer(layer);
                     }
                 });
+
+                lista.innerHTML = "";
+                
+                if (!snapshot.exists()) {
+                    lista.innerHTML = "<li>No hay ubicaciones registradas</li>";
+                    showLoader(false);
+                    return;
+                }
 
                 snapshot.forEach((childSnapshot) => {
                     const data = childSnapshot.val();
@@ -204,16 +279,40 @@
                     L.marker([latitud, longitud], {
                         icon: iconos[tipo] || iconos.default
                     }).addTo(map)
-                    .bindPopup(`<b>${nombre}</b><br>Tipo: ${tipo}<br>${latitud}, ${longitud}<br>${timestamp}`);
+                    .bindPopup(`<b><i class='fas fa-${tipo === 'administrador' ? 'crown' : tipo === 'tecnico' ? 'tools' : 'user'}'></i> ${nombre}</b><br>
+                              <small>Tipo: ${tipo}</small><br>
+                              <small>${latitud.toFixed(4)}, ${longitud.toFixed(4)}</small><br>
+                              <small>${timestamp}</small>`);
 
                     // Añadir a la lista
                     const item = document.createElement("li");
-                    item.innerHTML = `<strong>${nombre}</strong> (${tipo}): ${latitud.toFixed(4)}, ${longitud.toFixed(4)} - ${timestamp}`;
+                    item.innerHTML = `
+                        <span>
+                            <i class="fas fa-${tipo === 'administrador' ? 'crown' : tipo === 'tecnico' ? 'tools' : 'user'}"></i>
+                            <strong>${nombre}</strong> (${tipo})
+                        </span>
+                        <span>
+                            <small>${latitud.toFixed(4)}, ${longitud.toFixed(4)}</small><br>
+                            <small>${timestamp}</small>
+                        </span>
+                    `;
                     lista.appendChild(item);
                 });
+                showLoader(false);
+            }, (error) => {
+                console.error("Error al cargar ubicaciones:", error);
+                statusElement.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Error al cargar ubicaciones: ${error.message}`;
+                showLoader(false);
             });
         }
 
+        // Mostrar/ocultar loader
+        function showLoader(show) {
+            document.getElementById("loader").style.display = show ? "block" : "none";
+            document.getElementById("botonUbicacion").disabled = show;
+        }
+
+        // Cargar ubicaciones al iniciar
         cargarUbicaciones();
 
         // Manejar el botón de ubicación
@@ -224,51 +323,80 @@
             }
 
             if (navigator.geolocation) {
-                document.getElementById("status").innerText = "Obteniendo ubicación...";
+                statusElement.innerHTML = '<i class="fas fa-compass"></i> Obteniendo ubicación...';
+                showLoader(true);
                 
-                navigator.geolocation.getCurrentPosition((position) => {
-                    const latitud = position.coords.latitude;
-                    const longitud = position.coords.longitude;
-                    const timestamp = new Date().toLocaleString();
-                    const tipoUsuario = getTipoUsuario(userId);
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const latitud = position.coords.latitude;
+                        const longitud = position.coords.longitude;
+                        const timestamp = new Date().toLocaleString('es-MX', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        const tipoUsuario = getTipoUsuario(userId);
 
-                    // Guardar en Firebase
-                    database.ref("ubicaciones/" + userId).set({
-                        nombre: `Usuario ${userId}`,
-                        latitud: latitud,
-                        longitud: longitud,
-                        timestamp: timestamp,
-                        tipo: tipoUsuario
-                    }).then(() => {
-                        // Actualizar mapa
-                        map.setView([latitud, longitud], 15);
-                        
-                        // Añadir nuevo marcador
-                        L.marker([latitud, longitud], {
-                            icon: iconos[tipoUsuario] || iconos.default
-                        }).addTo(map)
-                        .bindPopup("<b>Tu ubicación actual</b><br>Guardada: " + timestamp)
-                        .openPopup();
+                        // Guardar en Firebase
+                        database.ref("ubicaciones/" + userId).set({
+                            nombre: `Usuario ${userId}`,
+                            latitud: latitud,
+                            longitud: longitud,
+                            timestamp: timestamp,
+                            tipo: tipoUsuario
+                        }).then(() => {
+                            // Actualizar mapa
+                            map.setView([latitud, longitud], 16);
+                            
+                            // Añadir nuevo marcador
+                            L.marker([latitud, longitud], {
+                                icon: iconos[tipoUsuario] || iconos.default
+                            }).addTo(map)
+                            .bindPopup(`<b><i class='fas fa-map-pin'></i> Tu ubicación actual</b><br><small>Guardada: ${timestamp}</small>`)
+                            .openPopup();
 
-                        // Recargar lista
-                        cargarUbicaciones();
-                        document.getElementById("status").innerText = "Ubicación guardada correctamente";
-                    }).catch(error => {
-                        console.error("Error al guardar:", error);
-                        document.getElementById("status").innerText = "Error al guardar ubicación";
-                    });
-                }, (error) => {
-                    console.error("Error de geolocalización:", error);
-                    document.getElementById("status").innerText = "Error al obtener ubicación: " + error.message;
-                }, {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                });
+                            // Recargar lista
+                            cargarUbicaciones();
+                            statusElement.innerHTML = `<i class="fas fa-check-circle"></i> Ubicación guardada correctamente`;
+                        }).catch(error => {
+                            console.error("Error al guardar:", error);
+                            statusElement.innerHTML = `<i class="fas fa-times-circle"></i> Error al guardar ubicación: ${error.message}`;
+                            showLoader(false);
+                        });
+                    },
+                    (error) => {
+                        console.error("Error de geolocalización:", error);
+                        let errorMessage = "Error al obtener ubicación";
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage = "Se denegó el permiso de geolocalización";
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage = "La información de ubicación no está disponible";
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage = "La solicitud de ubicación tardó demasiado";
+                                break;
+                        }
+                        statusElement.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${errorMessage}`;
+                        showLoader(false);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
             } else {
-                document.getElementById("status").innerText = "Geolocalización no soportada por tu navegador";
+                statusElement.innerHTML = '<i class="fas fa-times-circle"></i> Geolocalización no soportada por tu navegador';
             }
         });
+
+        // Añadir control de escala
+        L.control.scale({ imperial: false }).addTo(map);
     </script>
 </body>
 </html>
