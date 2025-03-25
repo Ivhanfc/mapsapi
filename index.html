@@ -4,21 +4,74 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro con Twilio y Firebase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+    </style>
 </head>
 <body>
     <h1>Registro con Twilio y Firebase</h1>
-    <input type="text" id="nombre" placeholder="Nombre">
-    <input type="text" id="telefono" placeholder="Número de teléfono">
-    <input type="password" id="password" placeholder="Contraseña">
-    <button id="btnEnviarCodigo">Enviar Código</button>
-    <input type="text" id="codigoVerificacion" placeholder="Ingresa el código">
-    <button id="btnVerificarCodigo">Verificar Código</button>
+    <input type="text" id="nombre" placeholder="Nombre completo">
+    <input type="tel" id="telefono" placeholder="Número de teléfono (con código de país)">
+    <input type="password" id="password" placeholder="Contraseña (mínimo 6 caracteres)">
+    <button id="btnEnviarCodigo">Enviar Código de Verificación</button>
+    <input type="text" id="codigoVerificacion" placeholder="Ingresa el código de 6 dígitos">
+    <button id="btnVerificarCodigo">Verificar Código y Registrarse</button>
     <p id="status"></p>
 
-    <!-- Incluir el SDK de Firebase -->
+    <!-- Incluir los SDKs necesarios -->
     <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-auth.js"></script>
+    
     <script>
+        // Configuración para comunicación con App Inventor
+        const AndroidFunction = (typeof Android !== 'undefined') ? Android : null;
+        
         // Configuración de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBbR-O6hqk9gN2ohQuCCmV-vHiaEGhAL8s",
@@ -34,105 +87,211 @@
         // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth();
 
         // Variables para almacenar los datos del usuario
         let usuario = {
             nombre: '',
             telefono: '',
-            password: ''
+            password: '',
+            verificationId: ''
         };
 
+        // Función para mostrar estado
+        function showStatus(message, isError = false) {
+            const statusElement = document.getElementById("status");
+            statusElement.innerText = message;
+            statusElement.className = isError ? "error" : "success";
+            
+            // Si hay un error, mostrarlo también en la consola
+            if (isError) {
+                console.error(message);
+            }
+            
+            // Enviar mensaje a App Inventor si está disponible
+            if (AndroidFunction) {
+                AndroidFunction.showStatus(message, isError);
+            }
+        }
+
+        // Función para validar el número de teléfono
+        function validarTelefono(telefono) {
+            // Eliminar cualquier carácter que no sea número o +
+            const telefonoLimpio = telefono.replace(/[^\d+]/g, '');
+            
+            // Verificar que comience con + y tenga al menos 10 dígitos más
+            return telefonoLimpio.startsWith('+') && telefonoLimpio.length >= 12;
+        }
+
+        // Función para validar la contraseña
+        function validarPassword(password) {
+            return password.length >= 6;
+        }
+
         // Función para enviar el código de verificación
-        document.getElementById("btnEnviarCodigo").addEventListener("click", () => {
+        document.getElementById("btnEnviarCodigo").addEventListener("click", async () => {
             usuario.nombre = document.getElementById("nombre").value.trim();
             usuario.telefono = document.getElementById("telefono").value.trim();
             usuario.password = document.getElementById("password").value.trim();
 
             if (!usuario.nombre || !usuario.telefono || !usuario.password) {
-                alert("Por favor, completa todos los campos.");
+                showStatus("Por favor, completa todos los campos.", true);
                 return;
             }
 
-            // Enviar el código de verificación al backend
-            fetch('https://mapsapi-27zu.onrender.com/send-verification', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ phoneNumber: usuario.telefono })
-            })
-            .then(response => {
+            if (!validarTelefono(usuario.telefono)) {
+                showStatus("Por favor, ingresa un número de teléfono válido con código de país (ejemplo: +521234567890).", true);
+                return;
+            }
+
+            if (!validarPassword(usuario.password)) {
+                showStatus("La contraseña debe tener al menos 6 caracteres.", true);
+                return;
+            }
+
+            showStatus("Enviando código de verificación...");
+
+            try {
+                // Enviar el código de verificación al backend
+                const response = await fetch('https://mapsapi-27zu.onrender.com/send-verification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        phoneNumber: usuario.telefono,
+                        nombre: usuario.nombre
+                    })
+                });
+
                 if (!response.ok) {
-                    return response.text().then(text => { throw new Error(text) });
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Error en la solicitud');
                 }
-                return response.json();
-            })
-            .then(data => {
-                document.getElementById("status").innerText = data.message || "Código enviado correctamente.";
-            })
-            .catch(error => {
-                console.error('Error completo:', error);
-                document.getElementById("status").innerText = "Error al enviar el código: " + error.message;
-            });
+
+                const data = await response.json();
+                showStatus(data.message || "Código enviado correctamente. Revisa tu teléfono.");
+                
+                // Si el backend devuelve un verificationId, lo guardamos
+                if (data.verificationId) {
+                    usuario.verificationId = data.verificationId;
+                }
+            } catch (error) {
+                showStatus("Error al enviar el código: " + error.message, true);
+            }
         });
 
         // Función para verificar el código y guardar los datos en Firestore
-        document.getElementById("btnVerificarCodigo").addEventListener("click", () => {
+        document.getElementById("btnVerificarCodigo").addEventListener("click", async () => {
             const codigo = document.getElementById("codigoVerificacion").value.trim();
             if (!codigo) {
-                alert("Por favor, ingresa el código de verificación.");
+                showStatus("Por favor, ingresa el código de verificación.", true);
                 return;
             }
 
-            // Verificar el código con el backend
-            fetch('https://mapsapi-27zu.onrender.com/verify-code', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    phoneNumber: usuario.telefono,
-                    code: codigo
-                })
-            })
-            .then(response => {
+            if (!usuario.telefono) {
+                showStatus("Por favor, envía el código de verificación primero.", true);
+                return;
+            }
+
+            showStatus("Verificando código...");
+
+            try {
+                // Verificar el código con el backend
+                const response = await fetch('https://mapsapi-27zu.onrender.com/verify-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        phoneNumber: usuario.telefono,
+                        code: codigo,
+                        verificationId: usuario.verificationId // Si el backend lo necesita
+                    })
+                });
+
                 if (!response.ok) {
-                    return response.text().then(text => { throw new Error(text) });
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Error en la verificación');
                 }
-                return response.json();
-            })
-            .then(data => {
-                if (data.message === 'Código verificado correctamente') {
-                    document.getElementById("status").innerText = "Código verificado correctamente.";
 
-                    // Generar un ID único para el usuario
-                    const userId = Math.floor(Math.random() * 1000); // ID aleatorio
-                    localStorage.setItem("userId", userId); // Guardar el ID en localStorage
-
-                    // Guardar los datos del usuario en Firestore
-                    db.collection("usuarios").doc(userId.toString()).set({
-                        nombre: usuario.nombre,
-                        telefono: usuario.telefono,
-                        password: usuario.password,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    })
-                    .then(() => {
-                        document.getElementById("status").innerText = "Usuario registrado correctamente.";
-                        window.location.href = "map4.html"; // Redirigir al siguiente HTML
-                    })
-                    .catch(error => {
-                        console.error("Error al guardar en Firestore:", error);
-                        document.getElementById("status").innerText = "Error al guardar en Firestore: " + error.message;
-                    });
+                const data = await response.json();
+                
+                if (data.verified) {
+                    showStatus("Código verificado correctamente.");
+                    
+                    // Crear usuario en Firebase Authentication (opcional)
+                    try {
+                        const userCredential = await auth.createUserWithEmailAndPassword(
+                            usuario.telefono + "@tudominio.com", 
+                            usuario.password
+                        );
+                        
+                        // Guardar datos adicionales en Firestore
+                        const userId = userCredential.user.uid;
+                        
+                        await db.collection("usuarios").doc(userId).set({
+                            nombre: usuario.nombre,
+                            telefono: usuario.telefono,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            verified: true
+                        });
+                        
+                        showStatus("Usuario registrado correctamente.");
+                        
+                        // Redirigir o notificar a App Inventor
+                        if (AndroidFunction) {
+                            AndroidFunction.registroCompleto(userId, usuario.nombre, usuario.telefono);
+                        } else {
+                            // Si no estamos en App Inventor, redirigir
+                            window.location.href = "map4.html?userId=" + userId;
+                        }
+                        
+                    } catch (firebaseError) {
+                        // Si falla Firebase Auth, guardar solo en Firestore
+                        console.warn("Error en Firebase Auth:", firebaseError);
+                        
+                        const userId = "phone_" + usuario.telefono.replace(/[^\d]/g, '');
+                        await db.collection("usuarios").doc(userId).set({
+                            nombre: usuario.nombre,
+                            telefono: usuario.telefono,
+                            password: usuario.password, // Nota: En producción, nunca guardes contraseñas en texto plano
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            verified: true
+                        });
+                        
+                        showStatus("Registro completado (sin autenticación).");
+                        
+                        if (AndroidFunction) {
+                            AndroidFunction.registroCompleto(userId, usuario.nombre, usuario.telefono);
+                        } else {
+                            window.location.href = "map4.html?userId=" + userId;
+                        }
+                    }
                 } else {
-                    document.getElementById("status").innerText = "Código incorrecto.";
+                    showStatus("Código incorrecto o expirado.", true);
                 }
-            })
-            .catch(error => {
-                console.error('Error completo:', error);
-                document.getElementById("status").innerText = "Error al verificar el código: " + error.message;
-            });
+            } catch (error) {
+                showStatus("Error al verificar el código: " + error.message, true);
+            }
         });
+
+        // Función para manejar la comunicación con App Inventor
+        function setupAppInventorCommunication() {
+            if (AndroidFunction) {
+                // Ejemplo: Recibir datos de App Inventor
+                window.receiveDataFromApp = function(data) {
+                    console.log("Datos recibidos de App Inventor:", data);
+                    // Procesar datos según sea necesario
+                };
+                
+                // Notificar a App Inventor que la página está lista
+                AndroidFunction.pageLoaded();
+            }
+        }
+
+        // Inicializar comunicación cuando el DOM esté listo
+        document.addEventListener("DOMContentLoaded", setupAppInventorCommunication);
     </script>
 </body>
 </html>
