@@ -19,6 +19,14 @@
     <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-firestore.js"></script>
     <script>
+        // Ejemplo en tu script.js o dentro de <script> en index.html
+fetch('https://mapsapi-27zu.onrender.com/api/data')
+  .then(response => response.json())
+  .then(data => {
+    console.log(data);
+    document.getElementById('resultado').innerHTML = data.mensaje;
+  })
+  .catch(error => console.error('Error:', error));
         // Configuración de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBbR-O6hqk9gN2ohQuCCmV-vHiaEGhAL8s",
