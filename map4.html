@@ -63,6 +63,13 @@
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
+              // Ejemplo en tu script.js o dentro de <script> en index.html
+fetch('https://mapsapi-27zu.onrender.com/api/data')
+  .then(response => response.json())
+  .then(data => {
+    console.log(data);
+    document.getElementById('resultado').innerHTML = data.mensaje;
+  })
         const firebaseConfig = {
             apiKey: "AIzaSyBbR-O6hqk9gN2ohQuCCmV-vHiaEGhAL8s",
             authDomain: "construyecercadeti.firebaseapp.com",
