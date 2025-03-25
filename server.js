@@ -1,67 +1,99 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const Twilio = require('twilio');
 
 const app = express();
-const port = 3000; // Define el puerto
+const PORT = process.env.PORT || 3000;
 
-// Permitir solicitudes CORS desde cualquier origen
+// Middlewares
 app.use(cors());
-// Rutas
-app.get('/api/data', (req, res) => {
-    res.json({ mensaje: "Hola desde el servidor en Render!" });
-  });
-  
-  app.listen(PORT, () => {
-    console.log(`Servidor corriendo en puerto ${PORT}`);
-  });
-  
-// Configura el body parser para procesar datos JSON
 app.use(bodyParser.json());
 
-// Configura tus credenciales de Twilio
-const accountSid = 'AC48ef12d5c5611329b071ee368d4669f6'; // Reemplaza con tu Account SID
-const authToken = '84af1ee6830eb10d6b2f488e2a0e659e'; // Reemplaza con tu Auth Token
-const serviceSid = 'VAa70ed31c8b43069a3a4f831bff9cf011'; // Reemplaza con tu Service SID
+// Configuración de Twilio con variables de entorno
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const serviceSid = process.env.TWILIO_SERVICE_SID;
 
-const client = Twilio(accountSid, authToken);
+if (!accountSid || !authToken || !serviceSid) {
+    console.error('Faltan variables de entorno de Twilio');
+    process.exit(1);
+}
 
-// Ruta para enviar el código de verificación
-app.post('/send-verification', (req, res) => {
-    const { phoneNumber } = req.body;
+const client = new Twilio(accountSid, authToken);
 
-    client.verify.v2.services(serviceSid) // Cambié "verify.services" a "verify.v2.services"
-        .verifications
-        .create({ to: phoneNumber, channel: 'sms' })
-        .then(verification => {
-            res.status(200).send({ message: 'Código enviado correctamente' });
-        })
-        .catch(error => {
-            res.status(500).send({ error: 'Error al enviar el código', details: error });
-        });
+// Rutas
+app.get('/', (req, res) => {
+    res.json({ 
+        mensaje: "Servidor de verificación funcionando",
+        endpoints: {
+            send: '/send-verification (POST)',
+            verify: '/verify-code (POST)'
+        }
+    });
 });
 
-// Ruta para verificar el código
-app.post('/verify-code', (req, res) => {
-    const { phoneNumber, code } = req.body;
+app.post('/send-verification', async (req, res) => {
+    try {
+        const { phoneNumber } = req.body;
+        
+        if (!phoneNumber) {
+            return res.status(400).json({ error: 'Número de teléfono requerido' });
+        }
 
-    client.verify.v2.services(serviceSid) // Cambié "verify.services" a "verify.v2.services"
-        .verificationChecks
-        .create({ to: phoneNumber, code: code })
-        .then(verificationCheck => {
-            if (verificationCheck.status === 'approved') {
-                res.status(200).send({ message: 'Código verificado correctamente' });
-            } else {
-                res.status(400).send({ error: 'Código incorrecto' });
-            }
-        })
-        .catch(error => {
-            res.status(500).send({ error: 'Error al verificar el código', details: error });
+        const verification = await client.verify.v2.services(serviceSid)
+            .verifications
+            .create({ to: phoneNumber, channel: 'sms' });
+        
+        res.json({ 
+            status: 'success',
+            message: 'Código enviado correctamente',
+            verificationSid: verification.sid
         });
+    } catch (error) {
+        console.error('Error en send-verification:', error);
+        res.status(500).json({ 
+            status: 'error',
+            error: 'Error al enviar el código',
+            details: error.message
+        });
+    }
 });
 
-// Iniciar el servidor
-app.listen(port, () => {
-    console.log(`Servidor corriendo en http://localhost:${port}`);
+app.post('/verify-code', async (req, res) => {
+    try {
+        const { phoneNumber, code } = req.body;
+        
+        if (!phoneNumber || !code) {
+            return res.status(400).json({ error: 'Número y código requeridos' });
+        }
+
+        const verificationCheck = await client.verify.v2.services(serviceSid)
+            .verificationChecks
+            .create({ to: phoneNumber, code: code });
+        
+        if (verificationCheck.status === 'approved') {
+            res.json({ 
+                status: 'success',
+                message: 'Código verificado correctamente'
+            });
+        } else {
+            res.status(400).json({
+                status: 'error',
+                error: 'Código incorrecto'
+            });
+        }
+    } catch (error) {
+        console.error('Error en verify-code:', error);
+        res.status(500).json({ 
+            status: 'error',
+            error: 'Error al verificar el código',
+            details: error.message
+        });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(`Servidor corriendo en puerto ${PORT}`);
 });
