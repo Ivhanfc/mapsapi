@@ -208,17 +208,17 @@
     
     // Aumentamos el límite a 20 caracteres para números largos
     if (value.length > 21) {
-        value = value.substring(0, 20);
+        value = value.substring(0, 21);
     }
     
     // Nuevo formato visual para números mexicanos
     if (value.startsWith('+52')) {
-        if (value.length >+ 3) {
+        if (value.length >= 3) {
             const parts = [
                 value.substring(0, 3),  // +52
-                value.substring(3, 5),  // 66
-                value.substring(5, 8),  // 479
-                value.substring(8, 12)  // 86678
+                value.substring(3, 6),  // 66
+                value.substring(6, 9),  // 479
+                value.substring(9, 13)  // 86678
             ].filter(p => p);
             input.value = parts.join(' ');
         } else {
