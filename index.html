@@ -199,32 +199,38 @@
         }
         
         // Función para formatear número de teléfono
-        function formatPhone(input) {
-            let value = input.value.replace(/[^\d+]/g, '');
-            
-            if (!value.startsWith('+')) {
-                value = '+' + value.replace(/\+/g, '');
-            }
-            
-            if (value.length > 16) {
-                value = value.substring(0, 16);
-            }
-            
-            // Formatear visualmente (opcional)
-            if (value.length > 3) {
-                const parts = [
-                    value.substring(0, 3),
-                    value.substring(3, 5),
-                    value.substring(5, 8),
-                    value.substring(8, 12)
-                ].filter(p => p);
-                input.value = parts.join(' ');
-            } else {
-                input.value = value;
-            }
-            
-            usuario.telefono = value.replace(/\s/g, '');
+      function formatPhone(input) {
+    let value = input.value.replace(/[^\d+]/g, '');
+    
+    if (!value.startsWith('+')) {
+        value = '+' + value.replace(/\+/g, '');
+    }
+    
+    // Aumentamos el límite a 20 caracteres para números largos
+    if (value.length > 20) {
+        value = value.substring(0, 20);
+    }
+    
+    // Nuevo formato visual para números mexicanos
+    if (value.startsWith('+52')) {
+        if (value.length > 3) {
+            const parts = [
+                value.substring(0, 3),  // +52
+                value.substring(3, 5),  // 66
+                value.substring(5, 8),  // 479
+                value.substring(8, 12)  // 86678
+            ].filter(p => p);
+            input.value = parts.join(' ');
+        } else {
+            input.value = value;
         }
+    } else {
+        // Formato genérico para otros países
+        input.value = value;
+    }
+    
+    usuario.telefono = value.replace(/\s/g, '');
+}
         
         // Mover entre inputs de código
         function moveToNext(input) {
