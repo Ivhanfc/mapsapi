@@ -207,13 +207,13 @@
     }
     
     // Aumentamos el límite a 20 caracteres para números largos
-    if (value.length > 20) {
+    if (value.length > 21) {
         value = value.substring(0, 20);
     }
     
     // Nuevo formato visual para números mexicanos
     if (value.startsWith('+52')) {
-        if (value.length > 3) {
+        if (value.length >+ 3) {
             const parts = [
                 value.substring(0, 3),  // +52
                 value.substring(3, 5),  // 66
