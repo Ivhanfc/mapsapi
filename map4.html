@@ -1,111 +1,159 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa Tijuana - Marcadores en Tiempo Real</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <style>
-        body { margin: 0; padding: 0; }
-        #map { width: 100%; height: 100vh; }
-        #btnGuardar { 
-            position: fixed; 
-            bottom: 20px; 
-            right: 20px; 
-            z-index: 1000;
-            padding: 10px 15px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mapa Tijuana - Marcadores</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { width: 100%; height: 100vh; }
+    #btnGuardar { 
+      position: fixed; 
+      bottom: 20px; 
+      left: 20px; 
+      z-index: 1000;
+      padding: 10px 15px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #Profesiones {
+      position: fixed;
+      top: 0px;
+      left: 150px;
+      z-index: 1000;
+      padding: 8px;
+      border-radius: 5px;
+    }
+    label {
+      position: fixed;
+      top: 3px;
+      left: 73px;
+      background-color: white;
+      padding: 5px;
+      z-index: 1001;
+    }
+  </style>
 </head>
 <body>
-    <div id="map"></div>
-    <button id="btnGuardar">Guardar Mi Ubicación</button>
 
-    <!-- Firebase y Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-database.js"></script>
+  <label for="Profesiones">Profesión:</label>
+  <select id="Profesiones" name="Profesiones">
+    <option value="opcion1">Albañil</option>
+    <option value="opcion2">Arquitecto</option>
+    <option value="opcion3">Ingeniero civil</option>
+  </select>
 
-    <script>
-        // Configuración de Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyBbR-O6hqk9gN2ohQuCCmV-vHiaEGhAL8s",
-            authDomain: "construyecercadeti.firebaseapp.com",
-            databaseURL: "https://construyecercadeti-default-rtdb.firebaseio.com",
-            projectId: "construyecercadeti",
-            storageBucket: "construyecercadeti.appspot.com",
-            messagingSenderId: "888808949632",
-            appId: "1:888808949632:web:677961b72573979c1b6365",
-            measurementId: "G-METG6NS3ZC"
-        };
+  <div id="map"></div>
+  <button id="btnGuardar">Guardar Mi Ubicación</button>
 
-        // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-database.js"></script>
 
-        // Inicializar mapa centrado en Tijuana
-        const map = L.map('map').setView([32.5149, -117.0382], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+  <script>
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBbR-O6hqk9gN2ohQuCCmV-vHiaEGhAL8s",
+      databaseURL: "https://construyecercadeti-default-rtdb.firebaseio.com"
+    };
 
-        // Obtener ID de usuario (simulado para ejemplo)
-        const userId = localStorage.getItem('userId') || 'user_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('userId', userId);
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
 
-        // Cargar marcadores existentes
-        database.ref('ubicaciones').on('value', (snapshot) => {
-            const data = snapshot.val();
-            map.eachLayer(layer => {
-                if (layer instanceof L.Marker) {
-                    map.removeLayer(layer);
-                }
-            });
-            
-            if (data) {
-                Object.keys(data).forEach(key => {
-                    const ubicacion = data[key];
-                    L.marker([ubicacion.latitud, ubicacion.longitud])
-                        .addTo(map)
-                        .bindPopup(`<b>${ubicacion.nombre || 'Usuario'}</b><br>${new Date(ubicacion.timestamp).toLocaleString()}`);
-                });
-            }
+    const map = L.map('map').setView([32.5149, -117.0382], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    let userName = prompt("Por favor ingresa tu nombre:", "Usuario");
+
+    const markers = {};
+
+    const Albanil = L.icon({
+      iconUrl: '/alba.jpg',
+      iconSize: [38, 95],
+      iconAnchor: [22, 94],
+      popupAnchor: [-3, -76]
+    });
+
+    const Arquitecto = L.icon({
+      iconUrl: '/arqui.png',
+      iconSize: [38, 95],
+      iconAnchor: [22, 94],
+      popupAnchor: [-3, -76]
+    });
+
+    const Ingeniero = L.icon({
+      iconUrl: '/cascoalbanil.png',
+      iconSize: [38, 95],
+      iconAnchor: [22, 94],
+      popupAnchor: [-3, -76]
+    });
+
+    // Escuchar datos de Firebase
+    database.ref('ubicaciones').on('value', (snapshot) => {
+      const data = snapshot.val();
+
+      // Limpiar marcadores anteriores
+      Object.keys(markers).forEach(key => {
+        map.removeLayer(markers[key]);
+        delete markers[key];
+      });
+
+      // Mostrar nuevos marcadores
+      if (data) {
+        Object.keys(data).forEach(key => {
+          const ubicacion = data[key];
+          let icon;
+
+          if (ubicacion.profesion === "opcion1") icon = Albanil;
+          else if (ubicacion.profesion === "opcion2") icon = Arquitecto;
+          else if (ubicacion.profesion === "opcion3") icon = Ingeniero;
+
+          const profesionTexto = {
+            opcion1: "Albañil",
+            opcion2: "Arquitecto",
+            opcion3: "Ingeniero civil"
+          };
+
+          markers[key] = L.marker([ubicacion.latitud, ubicacion.longitud], { icon })
+            .addTo(map)
+            .bindPopup(`<b>${ubicacion.nombre}</b><br>Profesión: ${profesionTexto[ubicacion.profesion] || "No especificada"}`);
         });
+      }
+    });
 
-        // Función para guardar ubicación
-        document.getElementById('btnGuardar').addEventListener('click', () => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        const timestamp = Date.now();
-                        
-                        // Guardar en Firebase
-                        database.ref('ubicaciones/' + userId).set({
-                            latitud: lat,
-                            longitud: lng,
-                            nombre: `Usuario ${userId.substring(0, 4)}`,
-                            timestamp: timestamp
-                        });
-                        
-                        // Centrar mapa en la ubicación
-                        map.setView([lat, lng], 15);
-                    },
-                    (error) => {
-                        alert('Error al obtener ubicación: ' + error.message);
-                    },
-                    { enableHighAccuracy: true }
-                );
-            } else {
-                alert('Tu navegador no soporta geolocalización');
-            }
-        });
-    </script>
+    // Guardar ubicación al presionar el botón
+    document.getElementById('btnGuardar').addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        alert('Tu navegador no soporta geolocalización');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const userId = 'user_' + Date.now();
+          const profesionSeleccionada = document.getElementById('Profesiones').value;
+
+          database.ref('ubicaciones/' + userId).set({
+            latitud: lat,
+            longitud: lng,
+            nombre: userName || 'Usuario',
+            profesion: profesionSeleccionada,
+            timestamp: Date.now()
+          });
+
+          map.setView([lat, lng], 15);
+        },
+        (error) => {
+          alert('Error al obtener ubicación: ' + error.message);
+        }
+      );
+    });
+  </script>
 </body>
 </html>
