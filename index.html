@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verificación por SMS</title>
+    <title>Registrarse</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.3/firebase-database.js"></script>
+    
     <style>
+        /* Estilos para la página */
         :root {
             --morado-nu: #820ad1;
             --morado-claro: #9c27b0;
@@ -12,7 +18,7 @@
             --blanco: #ffffff;
             --gris-claro: #f5f5f5;
         }
-        
+
         body {
             margin: 0;
             padding: 15px;
@@ -23,27 +29,27 @@
             justify-content: center;
             align-items: center;
         }
-        
+
         .card {
             background: var(--blanco);
             border-radius: 12px;
             padding: 20px;
             width: 100%;
             max-width: 350px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
-        
+
         h1 {
             color: var(--morado-oscuro);
             text-align: center;
             margin: 0 0 20px 0;
             font-size: 22px;
         }
-        
+
         .input-group {
             margin-bottom: 15px;
         }
-        
+
         label {
             display: block;
             margin-bottom: 6px;
@@ -51,7 +57,7 @@
             font-size: 14px;
             font-weight: 500;
         }
-        
+
         input {
             width: 100%;
             padding: 10px 12px;
@@ -60,13 +66,13 @@
             font-size: 14px;
             box-sizing: border-box;
         }
-        
+
         input:focus {
             border-color: var(--morado-claro);
             outline: none;
             box-shadow: 0 0 0 2px rgba(156, 39, 176, 0.2);
         }
-        
+
         button {
             width: 100%;
             padding: 10px;
@@ -80,37 +86,17 @@
             margin-top: 8px;
             transition: background 0.2s;
         }
-        
+
         button:hover {
             background-color: var(--morado-oscuro);
         }
-        
+
         button:disabled {
             background-color: #bdc3c7;
             cursor: not-allowed;
             opacity: 0.7;
         }
-        
-        .code-container {
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
-            margin: 15px 0;
-        }
-        
-        .code-input {
-            flex: 1;
-            height: 40px;
-            text-align: center;
-            font-size: 16px;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-        }
-        
-        .code-input:focus {
-            border-color: var(--morado-claro);
-        }
-        
+
         .status {
             padding: 10px;
             border-radius: 6px;
@@ -120,286 +106,139 @@
             background-color: #f0f4ff;
             color: #1a237e;
         }
-        
+
         .error {
             background-color: #ffebee;
             color: #c62828;
         }
-        
+
         .success {
             background-color: #e8f5e9;
             color: #2e7d32;
         }
-        
-        .small-text {
-            font-size: 12px;
-            color: #666;
-            text-align: center;
-            margin-top: 15px;
-        }
     </style>
 </head>
+
 <body>
     <div class="card">
-        <h1>Verificación por SMS</h1>
-        
+        <h1>Registrarse</h1>
+
         <div class="input-group">
             <label for="nombre">Nombre completo</label>
             <input type="text" id="nombre" placeholder="Ej. Juan Pérez">
         </div>
-        
+
         <div class="input-group">
             <label for="telefono">Teléfono</label>
-            <input type="tel" id="telefono" placeholder="+52 1 2345 6789" oninput="formatPhone(this)">
+            <input type="tel" id="telefono" placeholder="+52 1 2345 6789">
         </div>
-        
-        <button id="btnEnviarCodigo">Enviar código</button>
-        
+
         <div class="input-group">
-            <label>Código de verificación</label>
-            <div class="code-container">
-                <input type="tel" maxlength="1" class="code-input" data-index="1" oninput="moveToNext(this)">
-                <input type="tel" maxlength="1" class="code-input" data-index="2" oninput="moveToNext(this)">
-                <input type="tel" maxlength="1" class="code-input" data-index="3" oninput="moveToNext(this)">
-                <input type="tel" maxlength="1" class="code-input" data-index="4" oninput="moveToNext(this)">
-                <input type="tel" maxlength="1" class="code-input" data-index="5" oninput="moveToNext(this)">
-                <input type="tel" maxlength="1" class="code-input" data-index="6" oninput="moveToNext(this)">
-            </div>
+            <label for="usuario">Nombre de Usuario</label>
+            <input type="text" id="usuario" placeholder="Ej. juanperez">
         </div>
-        
+
+        <div class="input-group">
+            <label for="password">Contraseña</label>
+            <input type="password" id="password" placeholder="********">
+        </div>
+
+        <button id="btnEnviarCodigo">Enviar código</button>
+
+        <div class="input-group">
+            <label for="codigo">Código de verificación</label>
+            <input type="text" id="codigo" placeholder="Ingresa el código de 6 dígitos">
+        </div>
+
         <button id="btnVerificar" disabled>Verificar</button>
-        
+
         <div id="status" class="status">Ingresa tu número para comenzar</div>
-        
-        <p class="small-text">Recibirás un SMS con el código de verificación</p>
     </div>
 
-    <!-- Elemento oculto para comunicación con App Inventor -->
-    <div id="appInventorComms" style="display:none;"></div>
-
     <script>
-        // Detectar si estamos en App Inventor
-        const isAppInventor = typeof Android !== 'undefined';
-        
-        // Objeto para almacenar datos
-        const usuario = {
-            nombre: '',
-            telefono: '',
-            verificationId: ''
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBbR-O6hqk9gN2ohQuCCmV-vHiaEGhAL8s",
+            authDomain: "construyecercadeti.firebaseapp.com",
+            databaseURL: "https://construyecercadeti-default-rtdb.firebaseio.com",
+            projectId: "construyecercadeti",
+            storageBucket: "construyecercadeti.appspot.com",
+            messagingSenderId: "888808949632",
+            appId: "1:888808949632:web:677961b72573979c1b6365",
+            measurementId: "G-METG6NS3ZC"
         };
-        
-        // Función para enviar mensajes a App Inventor
-        function sendToApp(message) {
-            if (isAppInventor) {
-                const commsElement = document.getElementById('appInventorComms');
-                commsElement.setAttribute('data-message', JSON.stringify(message));
-                commsElement.textContent = Date.now().toString();
-            }
-            console.log("Mensaje a App:", message);
-        }
-        
-        // Función para formatear número de teléfono
-      function formatPhone(input) {
-    let value = input.value.replace(/[^\d+]/g, '');
-    
-    if (!value.startsWith('+')) {
-        value = '+' + value.replace(/\+/g, '');
-    }
-    
-    // Aumentamos el límite a 20 caracteres para números largos
-    if (value.length > 21) {
-        value = value.substring(0, 21);
-    }
-    
-    // Nuevo formato visual para números mexicanos
-    if (value.startsWith('+52')) {
-        if (value.length >= 3) {
-            const parts = [
-                value.substring(0, 3),  // +52
-                value.substring(3, 6),  // 66
-                value.substring(6, 9),  // 479
-                value.substring(9, 13)  // 86678
-            ].filter(p => p);
-            input.value = parts.join(' ');
-        } else {
-            input.value = value;
-        }
-    } else {
-        // Formato genérico para otros países
-        input.value = value;
-    }
-    
-    usuario.telefono = value.replace(/\s/g, '');
-}
-        
-        // Mover entre inputs de código
-        function moveToNext(input) {
-            const nextIndex = parseInt(input.dataset.index) + 1;
-            const nextInput = document.querySelector(`.code-input[data-index="${nextIndex}"]`);
-            
-            if (input.value.length === 1 && nextInput) {
-                nextInput.focus();
-            }
-            
-            checkCodeComplete();
-        }
-        
-        // Verificar si el código está completo
-        function checkCodeComplete() {
-            let code = '';
-            for (let i = 1; i <= 6; i++) {
-                const input = document.querySelector(`.code-input[data-index="${i}"]`);
-                if (input) code += input.value;
-            }
-            
-            document.getElementById('btnVerificar').disabled = code.length !== 6;
-            return code;
-        }
-        
-        // Mostrar estado
-        function showStatus(message, isError = false, isSuccess = false) {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = isError ? 'status error' : (isSuccess ? 'status success' : 'status');
-            
-            sendToApp({
-                type: 'status',
-                message: message,
-                isError: isError,
-                isSuccess: isSuccess
-            });
-        }
-        
-        // Enviar código SMS
-        document.getElementById('btnEnviarCodigo').addEventListener('click', async function() {
-            usuario.nombre = document.getElementById('nombre').value.trim();
-            usuario.telefono = document.getElementById('telefono').value.replace(/\s/g, '');
-            
-            if (!usuario.nombre || !usuario.telefono) {
-                showStatus('Completa todos los campos', true);
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const firestore = firebase.firestore();
+        const database = firebase.database();
+
+        // Función para enviar el código de verificación
+        function sendCode() {
+            const phoneNumber = document.getElementById('telefono').value;
+
+            if (!phoneNumber.match(/^\+\d{11,15}$/)) {
+                alert("Por favor, ingresa un número válido con código de país.");
                 return;
             }
-            
-            if (!usuario.telefono.startsWith('+') || usuario.telefono.length < 13) {
-                showStatus('Ingresa un número válido con código de país', true);
-                return;
-            }
-            
-            try {
-                showStatus('Enviando código SMS...');
-                this.disabled = true;
-                
-                // Enviar solicitud a tu backend que usa Twilio
-                const response = await fetch('https://mapsapi-27zu.onrender.com/send-verification', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        phoneNumber: usuario.telefono,
-                        nombre: usuario.nombre
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showStatus('Código enviado. Revisa tu teléfono.', false, true);
-                    usuario.verificationId = data.verificationId;
-                } else {
-                    throw new Error(data.message || 'Error al enviar el código');
-                }
-            } catch (error) {
-                showStatus('Error: ' + error.message, true);
-            } finally {
-                this.disabled = false;
-            }
-        });
-        
-        // Verificar código
-        document.getElementById('btnVerificar').addEventListener('click', async function() {
-            const codigo = checkCodeComplete();
-            
-            try {
-                showStatus('Verificando código...');
-                this.disabled = true;
-                
-                // Verificar con tu backend que usa Twilio
-                const response = await fetch('https://mapsapi-27zu.onrender.com/verify-code', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        phoneNumber: usuario.telefono,
-                        code: codigo,
-                        verificationId: usuario.verificationId
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.verified) {
-                    showStatus('¡Verificación exitosa!', false, true);
-                    completeRegistration();
-                } else {
-                    throw new Error(data.message || 'Código incorrecto');
-                }
-            } catch (error) {
-                showStatus('Error: ' + error.message, true);
-            } finally {
-                this.disabled = false;
-            }
-        });
-        
-        // Función para completar el registro
-        function completeRegistration() {
-            // Enviar datos completos a App Inventor
-            sendToApp({
-                type: 'registro_completo',
-                nombre: usuario.nombre,
-                telefono: usuario.telefono,
-                timestamp: new Date().toISOString()
+
+            fetch('https://mapsapi2.onrender.com/send-verification', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ phoneNumber })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('btnVerificar').disabled = false;
+                document.getElementById('status').innerText = data.message || "Código enviado. Ingresa el código.";
+            })
+            .catch(error => {
+                document.getElementById('status').innerText = "Error al enviar el código.";
+                document.getElementById('status').classList.add('error');
             });
-            
-            // Si no es App Inventor, usar localStorage
-            if (!isAppInventor) {
-                localStorage.setItem('usuarioRegistrado', JSON.stringify(usuario));
-            }
         }
-        
-        // Permitir pegar código
-        document.addEventListener('paste', function(e) {
-            const pasteData = e.clipboardData.getData('text');
-            if (/^\d{6}$/.test(pasteData)) {
-                e.preventDefault();
-                for (let i = 0; i < 6; i++) {
-                    const input = document.querySelector(`.code-input[data-index="${i+1}"]`);
-                    if (input) input.value = pasteData[i];
+
+        // Función para verificar el código ingresado
+        function verifyCode() {
+            const phoneNumber = document.getElementById('telefono').value;
+            const code = document.getElementById('codigo').value;
+            const nombre = document.getElementById('nombre').value;
+            const usuario = document.getElementById('usuario').value;
+            const password = document.getElementById('password').value;
+
+            fetch('https://mapsapi2.onrender.com/verify-code', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ phoneNumber, code })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Guardar los datos en Firestore
+                    firestore.collection('Usuarios').add({
+                        nombre: nombre,
+                        telefono: phoneNumber,
+                        usuario: usuario,
+                        password: password
+                    })
+                    .then(() => {
+                        document.getElementById('status').innerText = "¡Cuenta creada y verificada correctamente!";
+                        window.location.href = "map4.html"; // Cambia este enlace por el archivo HTML que quieras abrir
+                        document.getElementById('status').classList.add('success');
+                    })
+                    .catch(error => {
+                        document.getElementById('status').innerText = "Error al guardar los datos.";
+                        document.getElementById('status').classList.add('error');
+                    });
+                } else {
+                    document.getElementById('status').innerText = "Código incorrecto. Intenta de nuevo.";
+                    document.getElementById('status').classList.add('error');
                 }
-                document.querySelector('.code-input[data-index="6"]').focus();
-                checkCodeComplete();
-            }
-        });
-        
-        // Inicialización para App Inventor
-        if (isAppInventor) {
-            // Función que App Inventor puede llamar
-            window.receiveFromApp = function(data) {
-                try {
-                    const jsonData = JSON.parse(data);
-                    if (jsonData.telefono) {
-                        document.getElementById('telefono').value = jsonData.telefono;
-                        usuario.telefono = jsonData.telefono.replace(/\s/g, '');
-                    }
-                } catch (e) {
-                    console.error("Error al recibir datos de App Inventor:", e);
-                }
-            };
-            
-            // Notificar que la página está lista
-            sendToApp({ type: 'ready', message: 'Página cargada correctamente' });
+            });
         }
+
+        document.getElementById('btnEnviarCodigo').addEventListener('click', sendCode);
+        document.getElementById('btnVerificar').addEventListener('click', verifyCode);
     </script>
 </body>
 </html>
